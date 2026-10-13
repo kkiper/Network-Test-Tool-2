@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "test": "combined",
+  "name": "Switch 1 + Switch 2 connected",
+  "switches": [
+    {
+      "id": "switch1",
+      "config": "switch1.json"
+    },
+    {
+      "id": "switch2",
+      "config": "switch2.json"
+    }
+  ],
+  "interconnects": [
+    {
+      "placeholder": true,
+      "note": "PLACEHOLDER: the diagrams don't show how Switch 1 and Switch 2 connect. Fill in both ends once confirmed.",
+      "a": {
+        "switch": "switch1",
+        "interface": null
+      },
+      "b": {
+        "switch": "switch2",
+        "interface": null
+      },
+      "media": null,
+      "path": [],
+      "expect": {
+        "link": "up",
+        "cdp_neighbor": true
+      }
+    }
+  ]
+}
