@@ -3,83 +3,220 @@
   "$id": "switch-config.schema.json",
   "title": "Switch wiring config",
   "type": "object",
-  "required": ["schema_version", "switch", "ports"],
+  "required": [
+    "schema_version",
+    "switch",
+    "ports"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": {
+      "const": 1
+    },
     "switch": {
       "type": "object",
-      "required": ["id", "name", "model"],
+      "required": [
+        "id",
+        "name",
+        "model"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
-        "name": { "type": "string" },
-        "model": { "type": "string" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        }
       }
     },
     "defaults": {
       "type": "object",
       "properties": {
-        "copper": { "type": "object", "properties": { "expect": { "$ref": "#/$defs/expect" } } },
-        "fiber": { "type": "object", "properties": { "expect": { "$ref": "#/$defs/expect" } } }
+        "copper": {
+          "type": "object",
+          "properties": {
+            "expect": {
+              "$ref": "#/$defs/expect"
+            }
+          }
+        },
+        "fiber": {
+          "type": "object",
+          "properties": {
+            "expect": {
+              "$ref": "#/$defs/expect"
+            }
+          }
+        }
       }
     },
-    "unlisted_ports": { "enum": ["ignore", "warn_if_up", "fail_if_up"] },
-    "ports": { "type": "array", "items": { "$ref": "#/$defs/port" } }
+    "unlisted_ports": {
+      "enum": [
+        "ignore",
+        "warn_if_up",
+        "fail_if_up"
+      ]
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/port"
+      }
+    }
   },
   "$defs": {
     "port": {
       "type": "object",
-      "required": ["interface", "media", "connects_to"],
+      "required": [
+        "interface",
+        "media",
+        "connects_to"
+      ],
       "additionalProperties": false,
       "properties": {
-        "interface": { "type": "string", "pattern": "^(GigabitEthernet|TenGigabitEthernet)[0-9]+/[0-9]+$" },
-        "diagram_label": { "type": "string" },
-        "media": { "enum": ["copper", "fiber"] },
+        "interface": {
+          "type": "string",
+          "pattern": "^(GigabitEthernet|TenGigabitEthernet)[0-9]+/[0-9]+$"
+        },
+        "diagram_label": {
+          "type": "string"
+        },
+        "media": {
+          "enum": [
+            "copper",
+            "fiber"
+          ]
+        },
         "connects_to": {
           "type": "object",
-          "required": ["device", "kind"],
+          "required": [
+            "device",
+            "kind"
+          ],
           "properties": {
-            "device": { "type": "string" },
-            "port": { "type": ["string", "null"] },
-            "kind": { "enum": ["device", "bulkhead", "switch"] }
+            "device": {
+              "type": "string"
+            },
+            "port": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "device",
+                "bulkhead",
+                "switch"
+              ]
+            }
           }
         },
         "optic": {
           "type": "object",
           "properties": {
-            "part_number": { "type": "string" },
-            "diagram_part_label": { "type": "string" },
-            "type": { "type": "string" },
-            "wavelength_nm": { "type": "number" },
-            "fiber": { "enum": ["multimode", "singlemode"] }
+            "part_number": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "wavelength_nm": {
+              "type": "number"
+            },
+            "fiber": {
+              "enum": [
+                "multimode",
+                "singlemode"
+              ]
+            },
+            "vendor": {
+              "type": "string"
+            },
+            "compatible_with": {
+              "type": "string"
+            },
+            "datasheet": {
+              "type": "string"
+            }
           }
         },
-        "expect": { "$ref": "#/$defs/expect" },
-        "note": { "type": "string" }
+        "expect": {
+          "$ref": "#/$defs/expect"
+        },
+        "note": {
+          "type": "string"
+        }
       }
     },
     "expect": {
       "type": "object",
       "properties": {
-        "link": { "enum": ["up", "optional", "down"] },
-        "speed_mbps": { "type": ["integer", "null"] },
-        "duplex": { "enum": ["full", "half"] },
-        "cdp_neighbor": { "type": ["boolean", "string"] },
-        "mac_addresses": { "type": "array", "items": { "type": "string" } },
+        "link": {
+          "enum": [
+            "up",
+            "optional",
+            "down"
+          ]
+        },
+        "speed_mbps": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "duplex": {
+          "enum": [
+            "full",
+            "half"
+          ]
+        },
+        "cdp_neighbor": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "mac_addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "light_levels_dbm": {
           "type": "object",
           "properties": {
-            "use_module_thresholds": { "type": "boolean" },
-            "tx": { "$ref": "#/$defs/range" },
-            "rx": { "$ref": "#/$defs/range" }
+            "use_module_thresholds": {
+              "type": "boolean"
+            },
+            "tx": {
+              "$ref": "#/$defs/range"
+            },
+            "rx": {
+              "$ref": "#/$defs/range"
+            }
           }
         }
       }
     },
     "range": {
       "type": "object",
-      "required": ["min", "max"],
-      "properties": { "min": { "type": "number" }, "max": { "type": "number" } }
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      }
     }
   }
 }

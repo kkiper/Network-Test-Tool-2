@@ -14,20 +14,24 @@
   ],
   "interconnects": [
     {
-      "placeholder": true,
-      "note": "PLACEHOLDER: the diagrams don't show how Switch 1 and Switch 2 connect. Fill in both ends once confirmed.",
+      "note": "Switch 2 GE 1/5 runs to bulkhead 2-J4, which is cabled to bulkhead 1-J5, which runs to Switch 1 GI 1/4.",
       "a": {
         "switch": "switch1",
-        "interface": null
+        "interface": "GigabitEthernet1/4"
       },
       "b": {
         "switch": "switch2",
-        "interface": null
+        "interface": "GigabitEthernet1/5"
       },
-      "media": null,
-      "path": [],
+      "media": "copper",
+      "path": [
+        "1-J5",
+        "2-J4"
+      ],
       "expect": {
         "link": "up",
+        "speed_mbps": 1000,
+        "duplex": "full",
         "cdp_neighbor": true
       }
     }

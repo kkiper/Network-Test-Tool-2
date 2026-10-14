@@ -89,15 +89,17 @@
       "media": "fiber",
       "connects_to": {
         "device": "Fiber Bulkhead (4-channel multimode)",
-        "port": null,
+        "port": "P1/S1",
         "kind": "bulkhead"
       },
       "optic": {
-        "part_number": "SFP-10G-SR",
-        "diagram_part_label": "SFP-10GSR-85I",
+        "part_number": "SFP-10GSR-85I",
+        "vendor": "FS.com",
+        "compatible_with": "Cisco SFP-10G-SR-I",
         "type": "10GBASE-SR",
         "wavelength_nm": 850,
-        "fiber": "multimode"
+        "fiber": "multimode",
+        "datasheet": "https://img-en.fs.com/file/datasheet/10g-sr-i.pdf"
       },
       "expect": {
         "link": "optional",
@@ -105,16 +107,16 @@
         "light_levels_dbm": {
           "use_module_thresholds": true,
           "tx": {
-            "min": -7.3,
+            "min": -6.0,
             "max": -1.0
           },
           "rx": {
-            "min": -9.9,
-            "max": -1.0
+            "min": -11.1,
+            "max": 0.5
           }
         }
       },
-      "note": "Bulkhead channel not shown on the diagram (port is null). Link is optional because the far end of the bulkhead may be empty during a single-switch test; when link is up, light levels are checked."
+      "note": "Fiber bulkhead channel P1/S1. Link is optional because the far end of the bulkhead may be empty during a single-switch test; when link is up, light levels are checked."
     },
     {
       "interface": "TenGigabitEthernet1/2",
@@ -122,15 +124,17 @@
       "media": "fiber",
       "connects_to": {
         "device": "Fiber Bulkhead (4-channel multimode)",
-        "port": null,
+        "port": "P2/S2",
         "kind": "bulkhead"
       },
       "optic": {
-        "part_number": "SFP-10G-SR",
-        "diagram_part_label": "SFP-10GSR-85I",
+        "part_number": "SFP-10GSR-85I",
+        "vendor": "FS.com",
+        "compatible_with": "Cisco SFP-10G-SR-I",
         "type": "10GBASE-SR",
         "wavelength_nm": 850,
-        "fiber": "multimode"
+        "fiber": "multimode",
+        "datasheet": "https://img-en.fs.com/file/datasheet/10g-sr-i.pdf"
       },
       "expect": {
         "link": "optional",
@@ -138,16 +142,16 @@
         "light_levels_dbm": {
           "use_module_thresholds": true,
           "tx": {
-            "min": -7.3,
+            "min": -6.0,
             "max": -1.0
           },
           "rx": {
-            "min": -9.9,
-            "max": -1.0
+            "min": -11.1,
+            "max": 0.5
           }
         }
       },
-      "note": "Bulkhead channel not shown on the diagram (port is null). Link is optional because the far end of the bulkhead may be empty during a single-switch test; when link is up, light levels are checked."
+      "note": "Fiber bulkhead channel P2/S2. Link is optional because the far end of the bulkhead may be empty during a single-switch test; when link is up, light levels are checked."
     },
     {
       "interface": "GigabitEthernet1/4",

@@ -49,13 +49,16 @@ when something is plugged into its far side.
 
 Fiber light levels: the checker uses the thresholds the SFP reports about
 itself (`use_module_thresholds: true`) and falls back to the `tx`/`rx` ranges
-in dBm, which come from the Cisco SFP-10G-SR datasheet.
+in dBm, which come from the optic's datasheet (FS.com SFP-10GSR-85I: transmit
+-6.0 to -1.0 dBm, receive -11.1 to +0.5 dBm).
 
 ### Combined config (`combined.json`)
 
 Lists the two switch configs to run together and the `interconnects` between
 them. Each interconnect names both ends (`a`, `b`: switch id and interface),
 the `media`, any bulkheads along the `path`, and what to `expect` (link up and
-each switch seeing the other as a CDP neighbor). An entry with
-`"placeholder": true` is not filled in yet and is reported as "not configured"
-rather than failed.
+each switch seeing the other as a CDP neighbor). In the combined test the
+interconnect's `expect` replaces each end port's standalone `expect`, so a
+bulkhead port that was optional on its own must have link when the switches
+are joined. An entry with `"placeholder": true` is not filled in yet and is
+reported as "not configured" rather than failed.
