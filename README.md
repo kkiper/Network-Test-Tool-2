@@ -60,5 +60,6 @@ the `media`, any bulkheads along the `path`, and what to `expect` (link up and
 each switch seeing the other as a CDP neighbor). In the combined test the
 interconnect's `expect` replaces each end port's standalone `expect`, so a
 bulkhead port that was optional on its own must have link when the switches
-are joined. An entry with `"placeholder": true` is not filled in yet and is
+are joined (settings the interconnect doesn't mention, such as light levels,
+are kept). An entry with `"placeholder": true` is not filled in yet and is
 reported as "not configured" rather than failed.
