@@ -8,6 +8,99 @@ compare them to a JSON config. Each port gets a pass, warn or fail result.
 Testing happens in three modes: Switch 1 alone, Switch 2 alone, then both
 switches connected together.
 
+## Running a test (command line)
+
+The GUI is coming next; until then the engine runs from the command line.
+Needs Python 3.9+ and `pip install -r requirements.txt`.
+
+```
+# Live: one switch (asks for the password)
+python -m nettest configs/standard-build/switch1.json --host 192.168.1.1 --user admin
+
+# Live: both switches connected
+python -m nettest configs/standard-build/combined.json \
+    --host switch1=192.168.1.1 --host switch2=192.168.1.2 --user admin
+
+# Offline: from saved show-command output
+python -m nettest configs/standard-build/switch1.json --offline switch1-session.log
+
+# Save a .txt and .json report
+python -m nettest ... --save reports --site "Site 7"
+```
+
+Exit code is 0 when everything passed, 1 for warnings, 2 for failures and 3
+when a switch couldn't be read.
+
+### What it reads
+
+Over SSH it runs these commands on each switch:
+
+```
+show interfaces status
+show cdp neighbors detail
+show lldp neighbors detail
+show mac address-table
+show interfaces transceiver detail
+show running-config | include ^hostname
+```
+
+For offline mode, give it either a saved terminal session (a PuTTY log or a
+copy-paste of the window, with the `Switch#show ...` prompt lines left in;
+abbreviations like `sh int status` are fine) or a folder with one file per
+command named `show_interfaces_status.txt`, `show_cdp_neighbors_detail.txt`,
+`show_lldp_neighbors_detail.txt`, `show_mac_address_table.txt`,
+`show_interfaces_transceiver_detail.txt` and optionally `hostname.txt`.
+A missing command only turns off the checks that need it.
+
+### What it checks
+
+| Check | Pass | Warn | Fail |
+|---|---|---|---|
+| Link | Up when it should be, or down on an optional (bulkhead) port | Optional port shut down in config | No link, err-disabled, shut down, link on a port that should be empty |
+| Duplex | Matches `duplex` | Half duplex when full is expected | |
+| Speed | Only checked if a port or default sets `speed_mbps` (off in the standard configs) | Different from `speed_mbps` | |
+| Neighbor (`cdp_neighbor`) | CDP/LLDP sees the right switch on the right port | CDP and LLDP both off | Nobody seen, wrong device, or right switch but wrong port |
+| MAC (`mac_addresses`) | Expected MAC seen on the port | MAC table unavailable | MAC missing, or seen on another port (swapped cables) |
+| SFP | Present and the expected type | Different optic type | No SFP installed |
+| Light levels | Within range | Between the SFP's warning and alarm levels | Past the SFP's alarm level (or outside the config range when the SFP has no thresholds), or no light at all |
+| Unlisted ports | | Link up and `unlisted_ports: warn_if_up` | Link up and `unlisted_ports: fail_if_up` |
+
+Receive light is only checked when the link is up; transmit light is checked
+whenever an SFP is installed.
+
+### Using the engine from code
+
+```python
+from nettest import load_test, run_test, find_tests, SshCollector, OfflineCollector
+
+find_tests("configs/standard-build")          # [(label, path), ...] for a picker
+plan = load_test("configs/standard-build/combined.json")
+report = run_test(plan, {
+    "switch1": SshCollector("192.168.1.1", "admin", "password"),
+    "switch2": OfflineCollector("saved/switch2.log"),
+}, on_progress=print)
+
+report.status                    # Status.PASS / WARN / FAIL / NOT_CONFIGURED
+for port in report.ports():
+    port.status, port.diagram_label, port.target, port.summary
+    for f in port.findings:      # each has .message and, when something's wrong, .action
+        ...
+report.save("reports", site="Site 7")
+```
+
+A switch that can't be reached shows up as `report.switches[i].error`
+instead of raising, so one bad switch doesn't lose the other's results.
+
+### Tests
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+The tests run the engine against saved ESS 3300 output in `tests/samples/`
+(good and faulty Switch 1, Switch 2, and both switches connected).
+
 ## Configs
 
 ```
@@ -28,7 +121,7 @@ Copy `configs/standard-build/` to a new folder if a site is wired differently.
 |---|---|
 | `schema_version` | Always `1` for now. |
 | `switch` | `id` (used by `combined.json`), display `name`, `model`. |
-| `defaults.copper.expect` | What every copper port should show unless the port overrides it (link up, 1000 Mb/s, full duplex). |
+| `defaults.copper.expect` | What every copper port should show unless the port overrides it (link up, full duplex). Speed isn't checked unless a `speed_mbps` is added. |
 | `unlisted_ports` | What to do with ports not in the list: `ignore`, `warn_if_up` or `fail_if_up`. |
 | `ports[]` | One entry per cabled port. |
 

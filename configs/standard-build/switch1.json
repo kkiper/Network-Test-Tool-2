@@ -9,7 +9,6 @@
     "copper": {
       "expect": {
         "link": "up",
-        "speed_mbps": 1000,
         "duplex": "full"
       }
     }
@@ -78,10 +77,8 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up",
-        "speed_mbps": null
-      },
-      "note": "UPS management NICs are often 100 Mb/s; speed is not enforced here."
+        "link": "up"
+      }
     },
     {
       "interface": "TenGigabitEthernet1/1",
@@ -103,7 +100,6 @@
       },
       "expect": {
         "link": "optional",
-        "speed_mbps": 10000,
         "light_levels_dbm": {
           "use_module_thresholds": true,
           "tx": {
@@ -138,7 +134,6 @@
       },
       "expect": {
         "link": "optional",
-        "speed_mbps": 10000,
         "light_levels_dbm": {
           "use_module_thresholds": true,
           "tx": {

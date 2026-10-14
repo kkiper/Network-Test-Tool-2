@@ -30,7 +30,6 @@
       ],
       "expect": {
         "link": "up",
-        "speed_mbps": 1000,
         "duplex": "full",
         "cdp_neighbor": true
       }

@@ -100,11 +100,10 @@ def test_switch1_faults_sample():
     assert ports["GI 1/5"].summary == "GI 1/5 has no link."
     # The stray link on GI 1/10 is pointed out as a likely wrong port.
     assert "GI 1/10" in ports["GI 1/5"].findings[0].action
-    assert ports["GI 1/7"].status == Status.WARN
-    assert "100 Mb/s" in ports["GI 1/7"].summary
+    assert ports["GI 1/7"].status == Status.PASS          # speed isn't checked by default
     assert ports["GI 1/9"].status == Status.FAIL
     assert "err-disabled" in ports["GI 1/9"].summary
-    assert ports["GI 1/8"].status == Status.PASS          # UPS speed not enforced
+    assert ports["GI 1/8"].status == Status.PASS
     assert ports["TE1/1"].status == Status.FAIL
     assert "-14.6 dBm" in ports["TE1/1"].summary
     assert ports["TE1/1"].observed["rx_dbm"] == -14.6
@@ -119,6 +118,16 @@ def test_switch2_folder_sample_passes_and_notes_lldp_off():
     assert report.status == Status.PASS, report.to_text()
     assert report.switches[0].hostname == "SW2-ESS3300"
     assert "show lldp neighbors detail" in report.switches[0].unavailable
+
+
+def test_speed_checked_when_config_sets_it(tmp_path):
+    site = copy_configs(tmp_path)
+    edit_json(site / "switch1.json",
+              lambda d: d["defaults"]["copper"]["expect"].update(speed_mbps=1000))
+    report = run_single(str(site / "switch1.json"), sample("switch1_faults.log"))
+    g = by_label(report)["GI 1/7"]
+    assert g.status == Status.WARN
+    assert "100 Mb/s" in g.summary
 
 
 def test_light_level_warning_band(tmp_path):
