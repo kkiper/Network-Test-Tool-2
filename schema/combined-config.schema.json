@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "combined-config.schema.json",
+  "title": "Combined (switches connected) test config",
+  "type": "object",
+  "required": ["schema_version", "test", "switches", "interconnects"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "test": { "const": "combined" },
+    "name": { "type": "string" },
+    "switches": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "config"],
+        "properties": { "id": { "type": "string" }, "config": { "type": "string" } }
+      }
+    },
+    "interconnects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["a", "b"],
+        "properties": {
+          "placeholder": { "type": "boolean" },
+          "note": { "type": "string" },
+          "a": { "$ref": "#/$defs/end" },
+          "b": { "$ref": "#/$defs/end" },
+          "media": { "enum": ["copper", "fiber", null] },
+          "path": { "type": "array", "items": { "type": "string" } },
+          "expect": { "$ref": "switch-config.schema.json#/$defs/expect" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "end": {
+      "type": "object",
+      "required": ["switch", "interface"],
+      "properties": {
+        "switch": { "type": "string" },
+        "interface": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "test": "combined",
+  "name": "Switch 1 + Switch 2 connected",
+  "switches": [
+    {
+      "id": "switch1",
+      "config": "switch1.json"
+    },
+    {
+      "id": "switch2",
+      "config": "switch2.json"
+    }
+  ],
+  "interconnects": [
+    {
+      "note": "Switch 2 GE 1/5 runs to bulkhead 2-J4, which is cabled to bulkhead 1-J5, which runs to Switch 1 GI 1/4.",
+      "a": {
+        "switch": "switch1",
+        "interface": "GigabitEthernet1/4"
+      },
+      "b": {
+        "switch": "switch2",
+        "interface": "GigabitEthernet1/5"
+      },
+      "media": "copper",
+      "path": [
+        "1-J5",
+        "2-J4"
+      ],
+      "expect": {
+        "link": "up",
+        "speed_mbps": 1000,
+        "duplex": "full",
+        "cdp_neighbor": true
+      }
+    }
+  ]
+}

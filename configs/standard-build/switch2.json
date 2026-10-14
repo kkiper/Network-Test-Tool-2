@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "switch": {
+    "id": "switch2",
+    "name": "Switch 2",
+    "model": "Cisco ESS 3300"
+  },
+  "defaults": {
+    "copper": {
+      "expect": {
+        "link": "up",
+        "speed_mbps": 1000,
+        "duplex": "full"
+      }
+    }
+  },
+  "unlisted_ports": "warn_if_up",
+  "ports": [
+    {
+      "interface": "GigabitEthernet1/3",
+      "diagram_label": "GI 1/3",
+      "media": "copper",
+      "connects_to": {
+        "device": "VOIP",
+        "port": null,
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/9",
+      "diagram_label": "GE 1/9",
+      "media": "copper",
+      "connects_to": {
+        "device": "Radio 1",
+        "port": "CH1",
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/10",
+      "diagram_label": "GE 1/10",
+      "media": "copper",
+      "connects_to": {
+        "device": "Radio 1",
+        "port": "CH2",
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/8",
+      "diagram_label": "GE 1/8",
+      "media": "copper",
+      "connects_to": {
+        "device": "Radio 2",
+        "port": "CH1",
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/7",
+      "diagram_label": "GE 1/7",
+      "media": "copper",
+      "connects_to": {
+        "device": "Radio 2",
+        "port": "CH2",
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/6",
+      "diagram_label": "GE 1/6",
+      "media": "copper",
+      "connects_to": {
+        "device": "Serial to Ethernet Converter",
+        "port": null,
+        "kind": "device"
+      },
+      "expect": {
+        "link": "up"
+      }
+    },
+    {
+      "interface": "GigabitEthernet1/5",
+      "diagram_label": "GE 1/5",
+      "media": "copper",
+      "connects_to": {
+        "device": "Bulkhead RJ-45",
+        "port": "2-J4",
+        "kind": "bulkhead"
+      },
+      "expect": {
+        "link": "optional"
+      },
+      "note": "Passive bulkhead. Link only comes up when something is plugged into the outside of the bulkhead, so link is optional."
+    }
+  ]
+}
