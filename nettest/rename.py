@@ -4,11 +4,11 @@ The name is only what the tool shows: the test choices, the results table,
 messages and saved reports. It doesn't change anything on the switches
 themselves (their hostnames stay as they are).
 
-Easiest way: open the tool and press "Rename switches..." next to the site.
-Or run ``python -m nettest.rename`` to open just the rename window, or from
-the command line::
+Run it from the command line with the site folder and one ID=NAME per switch::
 
     python -m nettest.rename configs/standard-build switch1="Rack A core" switch2="Rack B"
+
+With just the site folder, it lists the switches and their current names.
 
 The new name is written to ``switch.name`` in that switch's config. Anywhere
 else in the site's configs the old name appears in a name, note or device
@@ -26,6 +26,13 @@ NAME_MAX = 40
 # Only these fields hold display text. Ids, interfaces and jack labels are
 # never touched.
 TEXT_KEYS = ("name", "note", "device")
+
+USAGE = """Usage: python -m nettest.rename SITE_FOLDER [ID=NAME ...]
+
+  python -m nettest.rename configs/standard-build
+      list the switches and their current names
+  python -m nettest.rename configs/standard-build switch1="Rack A core" switch2="Rack B"
+      rename them (put names with spaces in quotes)"""
 
 
 def switch_names(site_dir):
@@ -160,14 +167,17 @@ def _write_json(path, data):
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    if not argv or (len(argv) == 1 and "=" not in argv[0]):
-        from .gui import open_rename_window
-        open_rename_window(argv[0] if argv else None)
-        return 0
+    if not argv or argv[0] in ("-h", "--help"):
+        print(USAGE)
+        return 0 if argv else 2
     site, pairs = argv[0], argv[1:]
     if not os.path.isdir(site):
         print("Not a folder: %s" % site, file=sys.stderr)
         return 2
+    if not pairs:
+        for sid, name, fn in switch_names(site):
+            print("%-10s %s  (%s)" % (sid, name, fn))
+        return 0
     new_names = {}
     for p in pairs:
         if "=" not in p:

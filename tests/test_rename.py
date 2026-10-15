@@ -89,3 +89,10 @@ def test_command_line(site, capsys):
     assert "Updated 3 file(s)." in capsys.readouterr().out
     assert rename.main([site, "switch1=Rack B"]) == 2
     assert "Nothing was renamed" in capsys.readouterr().err
+
+
+def test_command_line_lists_names_and_usage(site, capsys):
+    assert rename.main([site]) == 0
+    assert "switch1    Switch 1  (switch1.json)" in capsys.readouterr().out
+    assert rename.main([]) == 2
+    assert "Usage:" in capsys.readouterr().out

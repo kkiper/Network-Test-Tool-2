@@ -79,23 +79,3 @@ def test_connected_test_offers_copper_and_fiber_options(app):
     app.mode.set("offline")
     app._build_connection()
     assert not app.extras_frame.winfo_children() and app._extras() == ()
-
-
-def test_rename_dialog_renames_and_refreshes_test_list(app, tmp_path, monkeypatch):
-    import shutil
-    shown = []
-    monkeypatch.setattr("nettest.gui.messagebox.showinfo", lambda *a, **k: shown.append(a))
-    from nettest import gui
-    site = str(tmp_path / "site")
-    shutil.copytree(os.path.join(HERE, "..", "configs", "standard-build"), site)
-    app.settings["site_path"] = site
-    app.site.set("site")
-    app._load_tests()
-    dialog = gui.RenameDialog(app.root, site, on_saved=app._load_tests)
-    assert sorted(dialog.names) == ["switch1", "switch2"]
-    dialog.names["switch1"].set("Rack A core")
-    dialog.save()
-    labels = [label for label, _ in app.tests]
-    assert labels[0] == "Rack A core"
-    assert "Rack A core + Switch 2 connected" in labels
-    assert "switch1.json" in shown[0][1]

@@ -17,7 +17,6 @@ from tkinter import filedialog, messagebox, ttk
 
 from . import ConfigError, Status, find_tests, load_test, run_test
 from . import gui_logic as logic
-from . import rename
 
 COLORS = {
     # status: (row background, banner background, banner text)
@@ -71,13 +70,11 @@ class App(ttk.Frame):
 
         ttk.Label(left, text="1. Site", style="Step.TLabel").grid(sticky="w")
         row = ttk.Frame(left)
-        row.grid(sticky="ew", pady=(2, 4))
+        row.grid(sticky="ew", pady=(2, 10))
         self.site_box = ttk.Combobox(row, textvariable=self.site, state="readonly", width=24)
         self.site_box.pack(side="left")
         self.site_box.bind("<<ComboboxSelected>>", lambda e: self._load_tests())
         ttk.Button(row, text="Browse...", command=self._browse_site).pack(side="left", padx=4)
-        ttk.Button(left, text="Rename switches...", command=self._rename_switches).grid(
-            sticky="w", pady=(0, 10))
 
         ttk.Label(left, text="2. What are you testing?", style="Step.TLabel").grid(sticky="w")
         self.tests_frame = ttk.Frame(left)
@@ -123,7 +120,7 @@ class App(ttk.Frame):
         cols = ("result", "switch", "port", "target", "ip", "nbr_device", "nbr_port", "found")
         self.tree = ttk.Treeview(table, columns=cols, show="headings", selectmode="browse")
         for col, title, width, stretch in (
-                ("result", "Result", 60, False), ("switch", "Switch", 120, False),
+                ("result", "Result", 60, False), ("switch", "Switch", 80, False),
                 ("port", "From (ETH Switch Port)", 175, False), ("target", "To", 210, False),
                 ("ip", "IP address", 105, False),
                 ("nbr_device", "Neighbor device ID", 175, False),
@@ -180,13 +177,6 @@ class App(ttk.Frame):
         self.settings["site_path"] = path
         self.site.set(os.path.basename(path))
         self._load_sites()
-
-    def _rename_switches(self):
-        site = self._site_path()
-        if not os.path.isdir(site):
-            messagebox.showinfo("Rename switches", "Pick a site first.")
-            return
-        RenameDialog(self.root, site, on_saved=self._load_tests)
 
     def _load_tests(self):
         for w in self.tests_frame.winfo_children():
@@ -443,85 +433,6 @@ class App(ttk.Frame):
             if self.plan is not None and self.plan.extras:
                 self.settings["extras"] = list(self._extras())
         logic.save_settings(self.settings)
-
-
-class RenameDialog(tk.Toplevel):
-    """Type a new display name for each switch in a site, then Save."""
-
-    def __init__(self, master, site_dir, on_saved=None):
-        super().__init__(master)
-        self.site_dir = site_dir
-        self.on_saved = on_saved
-        self.title("Rename switches")
-        self.resizable(False, False)
-        self.names = {}            # switch id -> StringVar
-        frame = ttk.Frame(self, padding=12)
-        frame.grid(sticky="nsew")
-        ttk.Label(frame, wraplength=380, text=(
-            "Type the name you want the tool to show for each switch. This only "
-            "changes the name in the test and reports, not the switch itself.")).grid(
-            row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
-        current = rename.switch_names(site_dir)
-        if not current:
-            ttk.Label(frame, text="No switch configs found in this site folder.").grid(
-                row=1, column=0, columnspan=2, sticky="w")
-        for r, (sid, name, fn) in enumerate(current, start=1):
-            ttk.Label(frame, text=name).grid(row=r, column=0, sticky="w", padx=(0, 8), pady=3)
-            var = self.names[sid] = tk.StringVar(value=name)
-            entry = ttk.Entry(frame, textvariable=var, width=32, validate="key",
-                              validatecommand=(self.register(
-                                  lambda v: len(v) <= rename.NAME_MAX), "%P"))
-            entry.grid(row=r, column=1, sticky="ew", pady=3)
-            if r == 1:
-                entry.focus_set()
-                entry.select_range(0, "end")
-        buttons = ttk.Frame(frame)
-        buttons.grid(row=len(current) + 1, column=0, columnspan=2, sticky="e", pady=(10, 0))
-        ttk.Button(buttons, text="Cancel", command=self.destroy).pack(side="right")
-        ttk.Button(buttons, text="Save", command=self.save).pack(side="right", padx=6)
-        self.bind("<Return>", lambda e: self.save())
-        self.bind("<Escape>", lambda e: self.destroy())
-        self.transient(master)
-        self.grab_set()
-
-    def save(self):
-        try:
-            changed = rename.rename_switches(
-                self.site_dir, {sid: var.get() for sid, var in self.names.items()})
-        except (ValueError, ConfigError) as e:
-            messagebox.showerror("Rename switches", "Nothing was renamed.\n\n%s" % e,
-                                 parent=self)
-            return
-        except OSError as e:
-            messagebox.showerror("Rename switches", "Couldn't save the configs.\n\n%s" % e,
-                                 parent=self)
-            return
-        self.destroy()
-        if self.on_saved:
-            self.on_saved()
-        if changed:
-            messagebox.showinfo("Rename switches", "Saved. Updated:\n%s"
-                                % "\n".join(os.path.basename(p) for p in changed))
-
-
-def open_rename_window(site_dir=None):
-    """Open just the rename window (``python -m nettest.rename``)."""
-    root = tk.Tk()
-    root.withdraw()
-    if site_dir is None:
-        sites = logic.list_sites()
-        if len(sites) == 1:
-            site_dir = os.path.join(logic.configs_dir(), sites[0])
-        else:
-            site_dir = filedialog.askdirectory(title="Choose the site's config folder",
-                                               initialdir=logic.configs_dir())
-    if not site_dir:
-        root.destroy()
-        return
-    dialog = RenameDialog(root, site_dir)
-    dialog.protocol("WM_DELETE_WINDOW", root.destroy)
-    dialog.bind("<Destroy>", lambda e: root.after(0, root.destroy) if e.widget is dialog else None)
-    root.mainloop()
 
 
 def _banner(status):
