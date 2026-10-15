@@ -9,6 +9,12 @@ Run with no arguments to open the window. Command-line examples::
     python -m nettest configs/standard-build/combined.json \\
         --host switch1=192.168.1.1 --host switch2=192.168.1.2 --user admin
 
+    # Both switches connected, plus the copper and fiber tests through the
+    # external test switch (they turn test-switch ports off and on)
+    python -m nettest configs/standard-build/combined.json --copper --fiber \\
+        --host switch1=192.168.0.20 --host switch2=192.168.0.10 \\
+        --host test_switch=192.168.0.60 --user admin
+
     # Offline, from saved output (a session log file or a folder of files)
     python -m nettest configs/standard-build/switch1.json --offline switch1-log.txt
     python -m nettest configs/standard-build/combined.json \\
@@ -27,7 +33,7 @@ from . import ConfigError, OfflineCollector, SshCollector, Status, load_test, ru
 
 def _assign(values, plan, what):
     """Turn ``["1.2.3.4"]`` or ``["switch1=1.2.3.4", ...]`` into ``{id: value}``."""
-    ids = [s.id for s in plan.switches]
+    ids = [s.id for s in plan.switches] + ([plan.test_switch.id] if plan.test_switch else [])
     out = {}
     for v in values or []:
         if "=" in v and v.split("=", 1)[0] in ids:
@@ -36,8 +42,8 @@ def _assign(values, plan, what):
         elif len(ids) == 1:
             out[ids[0]] = v
         else:
-            raise SystemExit("This test has %d switches (%s). Give each %s as ID=VALUE."
-                             % (len(ids), ", ".join(ids), what))
+            raise SystemExit("This test has more than one switch (%s). Give each %s as "
+                             "ID=VALUE." % (", ".join(ids), what))
     return out
 
 
@@ -57,6 +63,10 @@ def main(argv=None):
     ap.add_argument("--user", help="SSH username")
     ap.add_argument("--password", help="SSH password (prompted if omitted)")
     ap.add_argument("--enable", help="enable password, if needed")
+    ap.add_argument("--copper", action="store_true",
+                    help="combined test: also run the copper test through the test switch")
+    ap.add_argument("--fiber", action="store_true",
+                    help="combined test: also run the fiber test through the test switch")
     ap.add_argument("--json", action="store_true", help="print the report as JSON")
     ap.add_argument("--save", metavar="FOLDER", help="save .txt and .json reports here")
     ap.add_argument("--site", help="site name used in saved report file names")
@@ -68,6 +78,12 @@ def main(argv=None):
         print("Config problem: %s" % e, file=sys.stderr)
         return 3
 
+    extras = tuple(e for e in ("copper", "fiber") if getattr(args, e))
+    missing = [e for e in extras if e not in plan.extras]
+    if missing:
+        print("Config problem: %s has no %s test set up." % (args.config, missing[0]),
+              file=sys.stderr)
+        return 3
     collectors = {}
     for sid, path in _assign(args.offline, plan, "saved-output path").items():
         collectors[sid] = OfflineCollector(path)
@@ -81,7 +97,7 @@ def main(argv=None):
         ap.error("give --host for a live switch or --offline for saved output")
 
     progress = None if args.json else (lambda m: print("..", m, file=sys.stderr))
-    report = run_test(plan, collectors, on_progress=progress)
+    report = run_test(plan, collectors, on_progress=progress, extras=extras)
 
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))

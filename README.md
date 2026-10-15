@@ -6,8 +6,9 @@ status, speed, CDP/LLDP neighbors, MAC addresses and SFP light levels, and
 compare them to a JSON config. Each port gets a pass, warn or fail result.
 
 Testing happens in three modes: Switch 1 alone, Switch 2 alone, then both
-switches connected together. A fourth test checks Room 1's copper bulkhead
-jacks by turning ports on an external test switch off and on (see below).
+switches connected together. The connected mode can also run two optional
+tests through an external test switch: a copper test of Room 1's bulkhead
+jacks and a fiber test (see below).
 
 ## Running a test (the window)
 
@@ -26,7 +27,10 @@ the Windows installer from python.org includes it.
    one box per switch, so two for the combined test; can be left blank).
 3. **Connect to the switch**: type the switch IP, username and password, or
    choose *Self Test File* to check a saved PuTTY log instead.
-4. Press **Run test**.
+4. **Test switch tests (optional)**: only shown for *Switch 1 + Switch 2
+   connected*. Tick *Copper test* and/or *Fiber test* and type the test
+   switch IP (it uses the same username and password as the switches).
+5. Press **Run test**.
 
 ![Window before a test](docs/gui-start.png)
 
@@ -51,11 +55,11 @@ The same engine runs from the command line. Needs Python 3.9+ and
 
 ```
 # Live: one switch (asks for the password)
-python -m nettest configs/standard-build/switch1.json --host 192.168.1.1 --user admin
+python -m nettest configs/standard-build/switch1.json --host 192.168.0.20 --user admin
 
 # Live: both switches connected
 python -m nettest configs/standard-build/combined.json \
-    --host switch1=192.168.1.1 --host switch2=192.168.1.2 --user admin
+    --host switch1=192.168.0.20 --host switch2=192.168.0.10 --user admin
 
 # Offline: from saved show-command output
 python -m nettest configs/standard-build/switch1.json --offline switch1-session.log
@@ -67,41 +71,40 @@ python -m nettest ... --save reports --site "Site 7"
 Exit code is 0 when everything passed, 1 for warnings, 2 for failures and 3
 when a switch couldn't be read.
 
-### Bulkhead jack test (test switch)
+### Copper and fiber tests (test switch)
 
-`bulkhead-jacks.json` checks Room 1's copper bulkhead jacks by having the tool
-turn ports on an external test switch off and on, one at a time, and watching
-which Switch 1 port follows. It needs both switches live over SSH (same
-username and password for both), and doesn't use the fiber.
+Both run inside the **Switch 1 + Switch 2 connected** test, after the normal
+checks. The tool logs in to the external test switch over SSH (same username
+and password as the switches) and turns its ports off and on itself; you
+never log in to the test switch. Pick either test or both. The copper test
+doesn't use the fiber, so it still works if the fiber has failed.
 
 Cabling:
 
 ```
-Laptop ── test switch spare port (e.g. Gi1/11)
-          test switch Gi1/12 ── 1-J5 ── Switch 1 Gi1/4        control link, stays on
-          test switch Gi1/1-9 ── 1-J6...1-J15 ── Switch 1      turned on one at a time
+Laptop ── test switch spare port (any port not listed below)
+          test switch Gi1/1 ── 1-J6 ── Switch 1 Gi1/6            control link, tested last
+          test switch Gi1/2-9 ── 1-J7...1-J15 ── Switch 1        turned on one at a time
+          test switch Te1/1, Te1/2 ── fiber bulkhead ── Switch 1 Te1/1, Te1/2
+          Switch 1 Gi1/4 ── 1-J5 ── 2-J4 ── Switch 2 Gi1/5       room link, not touched
 ```
 
 ```
-python -m nettest configs/standard-build/bulkhead-jacks.json \
-    --host switch1=192.168.0.20 --host test_switch=192.168.0.60 --user admin
+python -m nettest configs/standard-build/combined.json \
+    --host switch1=192.168.0.20 --host switch2=192.168.0.10 \
+    --host test_switch=192.168.0.60 --user admin --copper --fiber
 ```
 
-In the window, pick **Room 1 copper bulkheads, Switch 1 alone (test switch)**, type both IPs,
-and confirm the prompt. What happens:
+**Copper test:**
 
-1. Every test-switch port listed in the config is turned off (`shutdown`),
-   along with the test switch's fiber ports (`also_shut`), except the control
-   port.
+1. Every bulkhead-facing test-switch port and both fiber ports are turned off,
+   except the control port (Gi1/1, which carries the laptop's connection).
 2. For each jack, its test-switch port is turned on. It passes when only the
    expected Switch 1 port comes up, at 1000 Mb/s full duplex, and goes down
    again when the port is turned off.
-3. The control jack (1-J5, which carries the laptop's connection to Switch 1)
-   is tested last. A jack that already passed is turned on to carry the
-   connection while the control port is turned off and back on.
-4. The control port is always turned back on at the end, even if the test
-   stops part way. Nothing is saved on the test switch (no `write memory`),
-   so reloading it restores its saved config.
+3. The control jack (1-J6) is tested last. A jack that already passed is
+   turned on to carry the connection while the control port is turned off and
+   back on.
 
 | Result | Meaning |
 |---|---|
@@ -111,25 +114,27 @@ and confirm the prompt. What happens:
 | Fail: came up at 100 Mb/s | One of the four wire pairs is broken or miswired |
 | Fail: half duplex | Damaged pair or bad patch cable |
 | Fail: link with every test-switch port off | The jack is plugged into something other than the test switch |
-| Warn: control jack not tested | No other jack passed, so nothing could carry the connection while 1-J5 was off |
+| Warn: control jack not tested | No other jack passed, so nothing could carry the connection while 1-J6 was off |
 
-**Rooms connected:** `bulkhead-jacks-connected.json` runs the same test while
-Switch 1 and Switch 2 are joined (1-J5 to 2-J4). 1-J5 then belongs to Switch
-2, so test switch Gi1/1 to 1-J6 becomes the control link instead and is
-tested last. Neither version uses the fiber (the test switch's fiber ports are
-turned off), so the copper jacks can still be tested if the fiber has failed.
+**Fiber test:** the copper jacks are turned off (the control jack stays on as
+a backup path) and both fiber ports are turned on. For each fiber link it
+checks link at 10 Gb/s, SFP light levels, that CDP shows the expected test
+switch port on the far end (catches crossed fibers), and that the port is
+bundled in the EtherChannel. Then it turns each fiber port off in turn and
+pings Switch 1 from the test switch, to prove traffic keeps flowing over the
+other link.
 
-```
-Laptop ── test switch spare port
-          test switch Gi1/1 ── 1-J6 ── Switch 1 Gi1/6           control link, tested last
-          test switch Gi1/2-9 ── 1-J7...1-J15 ── Switch 1       turned on one at a time
-          Switch 1 Gi1/4 ── 1-J5 ── 2-J4 ── Switch 2 Gi1/5      room link, not touched
-```
+At the end every test-switch port the tool touched is turned back on, even if
+the test stops part way. Nothing is saved on the test switch (no
+`write memory`), so reloading it restores its saved config.
 
-The jack config (`test: "jack_test"`) lists each jack's `switch_port` and
-`test_switch_port`; mark the one carrying the laptop's connection with
-`"control": true`. Change the test-switch ports to match how the test switch
-is actually cabled.
+The test switch's ports are listed in the `test_switch` section of
+`combined.json` (`copper_test.jacks` with each jack's `switch_port` and
+`test_switch_port`, the control jack marked `"control": true`, and
+`fiber_test.links`). Change the test-switch ports to match how the test
+switch is actually cabled.
+
+![Connected test with copper and fiber options](docs/gui-connected-start.png)
 
 ### What it reads
 
@@ -179,7 +184,7 @@ from nettest import load_test, run_test, find_tests, SshCollector, OfflineCollec
 find_tests("configs/standard-build")          # [(label, path), ...] for a picker
 plan = load_test("configs/standard-build/combined.json")
 report = run_test(plan, {
-    "switch1": SshCollector("192.168.1.1", "admin", "password"),
+    "switch1": SshCollector("192.168.0.20", "admin", "password"),
     "switch2": OfflineCollector("saved/switch2.log"),
 }, on_progress=print)
 
@@ -210,13 +215,11 @@ The tests run the engine against saved ESS 3300 output in `tests/samples/`
 configs/standard-build/
   switch1.json    Switch 1 wiring
   switch2.json    Switch 2 wiring
-  combined.json   both switches connected, plus the link between them
-  bulkhead-jacks.json            Room 1 copper bulkhead jacks via the test switch, Switch 1 alone
-  bulkhead-jacks-connected.json  the same, with Switch 1 and Switch 2 connected
+  combined.json   both switches connected, the link between them, and the
+                  test switch ports for the copper and fiber tests
 schema/
   switch-config.schema.json
   combined-config.schema.json
-  jack-test.schema.json
 ```
 
 Copy `configs/standard-build/` to a new folder if a site is wired differently.

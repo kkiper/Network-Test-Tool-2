@@ -186,6 +186,9 @@ class SshSession:
         """Run a show command and return its output."""
         return self.conn.send_command(command, read_timeout=60)
 
+    def hostname(self):
+        return self.conn.find_prompt().rstrip("#>").strip() or None
+
     def configure(self, lines):
         """Send config-mode lines (``interface X``, ``shutdown``...). Not saved."""
         return self.conn.send_config_set(lines, read_timeout=60)
