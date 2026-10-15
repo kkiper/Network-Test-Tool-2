@@ -97,3 +97,13 @@ def test_check_date():
     assert logic.check_date("") == logic.today()
     with pytest.raises(logic.FormError, match="year-month-day"):
         logic.check_date("10/15/2026")
+
+
+def test_details_text_shows_neighbor_and_port():
+    from nettest import OfflineCollector, load_test, run_test
+    plan = load_test(os.path.join(logic.configs_dir(), "standard-build", "combined.json"))
+    here = os.path.dirname(os.path.abspath(__file__))
+    report = run_test(plan, {sid: OfflineCollector(os.path.join(here, "samples", "combined_%s.log" % sid))
+                             for sid in ("switch1", "switch2")})
+    gi14 = next(r for r in report.ports() if r.diagram_label == "GI 1/4" and r.switch_id == "switch1")
+    assert "neighbor SW2-ESS3300.example.local port GI 1/5" in logic.details_text(gi14)

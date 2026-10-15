@@ -396,3 +396,14 @@ def test_laptop_bulkhead_must_have_link(tmp_path):
     g = by_label(run_single(str(site / "switch2.json"), str(folder)))["GI 1/5"]
     assert g.status == Status.FAIL
     assert g.target == "Test laptop via bulkhead 2-J4"
+
+
+def test_neighbor_device_and_port():
+    report = run_combined(sample("combined_switch1.log"), sample("combined_switch2.log"))
+    sw1, sw2 = by_label(report, "switch1"), by_label(report, "switch2")
+    assert (sw1["GI 1/4"].neighbor_device, sw1["GI 1/4"].neighbor_port) == \
+        ("SW2-ESS3300.example.local", "GI 1/5")
+    assert (sw2["GI 1/5"].neighbor_device, sw2["GI 1/5"].neighbor_port) == ("SW1-ESS3300", "GI 1/4")
+    assert sw1["GI 1/3"].neighbor_device == "server01"     # LLDP from the server
+    assert sw1["GI 1/8"].neighbor_device == ""             # UPS doesn't speak CDP/LLDP
+    assert report.to_dict()["switches"][0]["ports"][0]["neighbor_device"] == "server01"

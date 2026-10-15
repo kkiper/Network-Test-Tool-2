@@ -87,7 +87,8 @@ def details_text(result):
     if obs.get("status"):
         seen.append("switch says '%s'" % obs["status"])
     if obs.get("neighbors"):
-        seen.append("sees %s" % ", ".join(n["device_id"] for n in obs["neighbors"]))
+        seen.append("neighbor %s" % ", ".join(
+            "%s port %s" % (d, p) if p else d for d, p in result.neighbors()))
     if obs.get("ips"):
         seen.append("IP %s" % ", ".join(obs["ips"]))
     if obs.get("macs"):

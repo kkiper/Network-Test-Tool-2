@@ -111,13 +111,15 @@ class App(ttk.Frame):
         table.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
         table.columnconfigure(0, weight=1)
         table.rowconfigure(0, weight=1)
-        cols = ("result", "switch", "port", "target", "ip", "found")
+        cols = ("result", "switch", "port", "target", "ip", "nbr_device", "nbr_port", "found")
         self.tree = ttk.Treeview(table, columns=cols, show="headings", selectmode="browse")
         for col, title, width, stretch in (
                 ("result", "Result", 60, False), ("switch", "Switch", 80, False),
-                ("port", "From (ETH Switch Port)", 180, False), ("target", "To", 220, False),
-                ("ip", "IP address", 110, False),
-                ("found", "What the test found", 360, True)):
+                ("port", "From (ETH Switch Port)", 175, False), ("target", "To", 210, False),
+                ("ip", "IP address", 105, False),
+                ("nbr_device", "Neighbor device ID", 175, False),
+                ("nbr_port", "Neighbor port ID", 135, False),
+                ("found", "What the test found", 300, True)):
             self.tree.heading(col, text=title, anchor="w")
             self.tree.column(col, width=width, stretch=stretch, anchor="w")
         for status, (bg, _, _) in COLORS.items():
@@ -326,13 +328,14 @@ class App(ttk.Frame):
         for sw in report.switches:
             if sw.error:
                 item = self.tree.insert("", "end", values=(
-                    "FAIL", sw.name, "", "", "", "Could not test %s: %s" % (sw.name, sw.error)),
+                    "FAIL", sw.name, "", "", "", "", "",
+                    "Could not test %s: %s" % (sw.name, sw.error)),
                     tags=(Status.FAIL.value,))
                 self.rows[item] = sw
         for r in logic.sorted_rows(report):
             item = self.tree.insert("", "end", values=(
                 logic.STATUS_TEXT[r.status], r.switch_name, r.diagram_label, r.target, r.ip,
-                r.summary),
+                r.neighbor_device, r.neighbor_port, r.summary),
                 tags=(r.status.value,))
             self.rows[item] = r
         first = self.tree.get_children()
@@ -410,7 +413,7 @@ def _open_path(path):
 def main():
     root = tk.Tk()
     root.title("Network Test Tool")
-    root.geometry("1280x700")
+    root.geometry("1540x700")
     root.minsize(900, 520)
     style = ttk.Style(root)
     if "clam" in style.theme_names() and not sys.platform.startswith("win"):
