@@ -50,7 +50,7 @@ def test_serial_box_holds_at_most_ten_characters(app):
     app.test_path.set(paths["combined.json"])
     app._build_connection()
     assert sorted(app.serials) == ["switch1", "switch2"]
-    boxes = [w for w in app.conn_frame.winfo_children()
+    boxes = [w for w in app.unit_frame.winfo_children()
              if isinstance(w, tk.ttk.Entry) and w.cget("textvariable") in
              (str(app.serials["switch1"]), str(app.serials["switch2"]))]
     assert len(boxes) == 2

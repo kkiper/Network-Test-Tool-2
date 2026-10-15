@@ -76,7 +76,9 @@ class App(ttk.Frame):
 
         ttk.Label(left, text="2. What are you testing?", style="Step.TLabel").grid(sticky="w")
         self.tests_frame = ttk.Frame(left)
-        self.tests_frame.grid(sticky="ew", pady=(2, 10))
+        self.tests_frame.grid(sticky="ew", pady=(2, 4))
+        self.unit_frame = ttk.Frame(left)      # test date and serial numbers
+        self.unit_frame.grid(sticky="ew", pady=(0, 10))
 
         ttk.Label(left, text="3. Connect to the switch", style="Step.TLabel").grid(sticky="w")
         modes = ttk.Frame(left)
@@ -190,7 +192,7 @@ class App(ttk.Frame):
         self._build_connection()
 
     def _build_connection(self):
-        for w in self.conn_frame.winfo_children():
+        for w in self.conn_frame.winfo_children() + self.unit_frame.winfo_children():
             w.destroy()
         self.plan = None
         if not self.test_path.get():
@@ -205,19 +207,18 @@ class App(ttk.Frame):
         offline = self.mode.get() == "offline"
         remembered = self.settings.get("addresses", {})
         fits = (self.register(logic.serial_fits), "%P")
-        ttk.Label(self.conn_frame, text="Test date").grid(row=0, column=0, sticky="w", pady=2)
-        ttk.Entry(self.conn_frame, textvariable=self.test_date, width=12).grid(
+        ttk.Label(self.unit_frame, text="Test date").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Entry(self.unit_frame, textvariable=self.test_date, width=12).grid(
             row=0, column=1, sticky="w", padx=4)
-        r = 1
-        for sw in self.plan.switches:
+        for r, sw in enumerate(self.plan.switches, start=1):
             sn = self.serials.get(sw.id)
             if sn is None:
                 sn = self.serials[sw.id] = tk.StringVar()
-            ttk.Label(self.conn_frame, text="%s serial no. (optional)" % sw.name
+            ttk.Label(self.unit_frame, text="%s S/N" % sw.name
                       ).grid(row=r, column=0, sticky="w", pady=2)
-            ttk.Entry(self.conn_frame, textvariable=sn, width=12, validate="key",
+            ttk.Entry(self.unit_frame, textvariable=sn, width=12, validate="key",
                       validatecommand=fits).grid(row=r, column=1, sticky="w", padx=4)
-            r += 1
+        r = 0
         for sw in self.plan.switches:
             var = self.addresses.get(sw.id)
             if var is None:

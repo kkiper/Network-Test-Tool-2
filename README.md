@@ -19,12 +19,12 @@ On Linux, tkinter may need installing first (`sudo apt install python3-tk`);
 the Windows installer from python.org includes it.
 
 1. **Site**: pick the folder under `configs/` for the site (or Browse to one).
-2. **What are you testing?**: Switch 1, Switch 2, or both connected.
-3. **Connect to the switch**: check the test date (today's date is filled
-   in), optionally type each switch's serial number (up to 10 letters,
-   numbers or dashes; one box per switch, so two for the combined test),
-   then the switch IP, username and password, or choose *Saved output
-   file* to check a saved PuTTY log instead.
+2. **What are you testing?**: Switch 1, Switch 2, or both connected. Under
+   the choices, check the test date (today's date is filled in) and type
+   each switch's S/N if you have it (up to 10 letters, numbers or dashes;
+   one box per switch, so two for the combined test; can be left blank).
+3. **Connect to the switch**: type the switch IP, username and password, or
+   choose *Saved output file* to check a saved PuTTY log instead.
 4. Press **Run test**.
 
 ![Window before a test](docs/gui-start.png)
