@@ -20,8 +20,10 @@ the Windows installer from python.org includes it.
 
 1. **Site**: pick the folder under `configs/` for the site (or Browse to one).
 2. **What are you testing?**: Switch 1, Switch 2, or both connected.
-3. **Connect to the switch**: type the switch IP, username and password, or
-   choose *Saved output file* to check a saved PuTTY log instead.
+3. **Connect to the switch**: type each switch's serial number (up to 10
+   letters, numbers or dashes; one box per switch, so two for the combined
+   test), then the switch IP, username and password, or choose *Saved output
+   file* to check a saved PuTTY log instead.
 4. Press **Run test**.
 
 ![Window before a test](docs/gui-start.png)
@@ -31,9 +33,9 @@ port to see what the switch reported and how to fix it.
 The IP address column shows the device's IP when the switch knows it (from
 its device-tracking table, its ARP table, or CDP/LLDP); it's blank for a
 device the switch hasn't talked to. Every run is saved to
-`reports/<site>/` as a `.txt` report (and a `.json` copy), and *Open report*
-opens it. The window remembers the site, test, IPs and username between runs,
-never the password.
+`reports/<site>/` as a `.txt` report (and a `.json` copy), with the serial
+numbers in the report and its file name, and *Open report* opens it. The window remembers the site, test, IPs and username between runs,
+never the password or serial numbers.
 
 ![Results of a Switch 1 test with problems](docs/gui-results.png)
 

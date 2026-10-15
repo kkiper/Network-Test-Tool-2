@@ -46,6 +46,7 @@ class App(ttk.Frame):
         self.password = tk.StringVar()
         self.enable = tk.StringVar()
         self.addresses = {}        # switch id -> StringVar
+        self.serials = {}          # switch id -> StringVar, never saved to settings
         self.progress = tk.StringVar(value="Fill in the left side, then press Run test.")
         self.saved = tk.StringVar()
 
@@ -202,7 +203,17 @@ class App(ttk.Frame):
 
         offline = self.mode.get() == "offline"
         remembered = self.settings.get("addresses", {})
+        fits = (self.register(logic.serial_fits), "%P")
         r = 0
+        for sw in self.plan.switches:
+            sn = self.serials.get(sw.id)
+            if sn is None:
+                sn = self.serials[sw.id] = tk.StringVar()
+            ttk.Label(self.conn_frame, text="%s serial number" % sw.name
+                      ).grid(row=r, column=0, sticky="w", pady=2)
+            ttk.Entry(self.conn_frame, textvariable=sn, width=12, validate="key",
+                      validatecommand=fits).grid(row=r, column=1, sticky="w", padx=4)
+            r += 1
         for sw in self.plan.switches:
             var = self.addresses.get(sw.id)
             if var is None:
@@ -241,6 +252,8 @@ class App(ttk.Frame):
         if self.running or self.plan is None:
             return
         try:
+            serials = logic.check_serials(self.plan, {sid: v.get() for sid, v in
+                                                      self.serials.items()})
             collectors = logic.build_collectors(
                 self.plan, self.mode.get() == "offline",
                 {sid: v.get() for sid, v in self.addresses.items()},
@@ -259,7 +272,7 @@ class App(ttk.Frame):
 
         def work():
             try:
-                report = run_test(plan, collectors,
+                report = run_test(plan, collectors, serials=serials,
                                   on_progress=lambda m: self.events.put(("progress", m)))
                 self.events.put(("done", report))
             except Exception as e:  # never leave the window stuck on "Testing..."

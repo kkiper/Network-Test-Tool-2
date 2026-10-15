@@ -76,3 +76,17 @@ def test_settings_never_store_passwords(tmp_path):
                         path)
     assert logic.load_settings(path) == {"site": "standard-build"}
     assert logic.load_settings(str(tmp_path / "missing.json")) == {}
+
+
+def test_check_serials():
+    from nettest import load_test
+    plan = load_test(os.path.join(logic.configs_dir(), "standard-build", "combined.json"))
+    assert logic.check_serials(plan, {"switch1": " fcw2233a1b ", "switch2": "FCW-1234"}) == \
+        {"switch1": "FCW2233A1B", "switch2": "FCW-1234"}
+    with pytest.raises(logic.FormError, match="serial number for Switch 2"):
+        logic.check_serials(plan, {"switch1": "FCW2233A1B"})
+    with pytest.raises(logic.FormError, match="longer than 10"):
+        logic.check_serials(plan, {"switch1": "FCW2233A1BX", "switch2": "A"})
+    with pytest.raises(logic.FormError, match="letters, numbers"):
+        logic.check_serials(plan, {"switch1": "FCW 2233", "switch2": "A"})
+    assert logic.serial_fits("ABCDEFGHIJ") and not logic.serial_fits("ABCDEFGHIJK")

@@ -25,6 +25,7 @@ from .collectors import OPTIONAL_COMMANDS, CollectionError
 class SwitchReport:
     id: str
     name: str
+    serial: str = None
     source: str = None
     hostname: str = None
     error: str = None
@@ -39,7 +40,8 @@ class SwitchReport:
 
     def to_dict(self):
         return {
-            "id": self.id, "name": self.name, "source": self.source,
+            "id": self.id, "name": self.name, "serial_number": self.serial,
+            "source": self.source,
             "hostname": self.hostname, "error": self.error,
             "status": self.status.value,
             "commands_unavailable": self.unavailable,
@@ -89,6 +91,8 @@ class TestReport:
         for sw in self.switches:
             head = "%s%s" % (sw.name, " (%s)" % sw.hostname if sw.hostname else "")
             lines += [head, "-" * len(head)]
+            if sw.serial:
+                lines.append("  Serial number: %s" % sw.serial)
             if sw.error:
                 lines += ["  FAIL  Could not test this switch: %s" % sw.error, ""]
                 continue
@@ -117,7 +121,8 @@ class TestReport:
         """
         os.makedirs(folder, exist_ok=True)
         stamp = (self.started_at or "").replace(":", "").replace("-", "")[:15]
-        base = "_".join(_slug(p) for p in (site, self.test_name, stamp) if p)
+        serials = "-".join(s.serial for s in self.switches if s.serial)
+        base = "_".join(_slug(p) for p in (site, self.test_name, serials, stamp) if p)
         json_path = os.path.join(folder, base + ".json")
         txt_path = os.path.join(folder, base + ".txt")
         with open(json_path, "w", encoding="utf-8") as f:
@@ -135,14 +140,16 @@ def _now():
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
-def run_test(plan, collectors, on_progress=None):
+def run_test(plan, collectors, on_progress=None, serials=None):
     """Collect from every switch in ``plan`` and check it.
 
     ``collectors`` maps switch id (``"switch1"``) to an object with a
     ``collect(on_progress)`` method, i.e. :class:`~nettest.SshCollector` or
     :class:`~nettest.OfflineCollector`. ``on_progress`` gets short status
     strings while the test runs. A switch that can't be reached is reported
-    as an error on that switch rather than raising.
+    as an error on that switch rather than raising. ``serials`` optionally
+    maps switch id to the serial number the tech typed in; it is only
+    recorded in the report.
     """
     say = on_progress or (lambda msg: None)
     report = TestReport(test_name=plan.name, mode=plan.mode, config_path=plan.path,
@@ -150,7 +157,7 @@ def run_test(plan, collectors, on_progress=None):
 
     snapshots = {}
     for sw in plan.switches:
-        sr = SwitchReport(id=sw.id, name=sw.name)
+        sr = SwitchReport(id=sw.id, name=sw.name, serial=(serials or {}).get(sw.id) or None)
         report.switches.append(sr)
         collector = collectors.get(sw.id)
         if collector is None:

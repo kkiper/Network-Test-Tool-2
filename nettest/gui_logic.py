@@ -6,6 +6,7 @@ isn't installed on every Python) and so the window code stays about layout.
 
 import json
 import os
+import re
 import sys
 
 from .checker import Status
@@ -124,6 +125,32 @@ def build_collectors(plan, offline, addresses, username, password, enable=None):
                 raise FormError("Enter the switch password.")
             collectors[sw.id] = SshCollector(value, username, password, secret=enable or None)
     return collectors
+
+
+SERIAL_MAX = 10
+_SERIAL_OK = re.compile(r"^[A-Za-z0-9-]+$")
+
+
+def serial_fits(text):
+    """True if ``text`` can be typed into a serial number box (length cap)."""
+    return len(text) <= SERIAL_MAX
+
+
+def check_serials(plan, serials):
+    """Validate the serial number typed for each switch; return ``{id: serial}``."""
+    clean = {}
+    for sw in plan.switches:
+        value = (serials.get(sw.id) or "").strip().upper()
+        if not value:
+            raise FormError("Enter the serial number for %s." % sw.name)
+        if len(value) > SERIAL_MAX:
+            raise FormError("The serial number for %s is longer than %d characters."
+                            % (sw.name, SERIAL_MAX))
+        if not _SERIAL_OK.match(value):
+            raise FormError("The serial number for %s can only have letters, numbers "
+                            "and dashes." % sw.name)
+        clean[sw.id] = value
+    return clean
 
 
 # ---- remembered settings (never the password) -----------------------------
