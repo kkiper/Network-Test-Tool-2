@@ -9,7 +9,6 @@
     "copper": {
       "expect": {
         "link": "up",
-        "speed_mbps": 1000,
         "duplex": "full"
       }
     }

@@ -1,0 +1,43 @@
+SW2-ESS3300#term len 0
+SW2-ESS3300#sh int status
+
+Port         Name               Status       Vlan       Duplex  Speed Type
+Gi1/3        VOIP               connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/4                           notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/5        Bulkhead 2-J4      connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/6        Serial-Eth Conv    connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/7        Radio 2 CH2        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/8        Radio 2 CH1        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/9        Radio 1 CH1        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/10       Radio 1 CH2        connected    20         a-full a-1000 10/100/1000BaseTX
+Te1/1                           notconnect   1            full    10G Not Present
+Te1/2                           notconnect   1            full    10G Not Present
+SW2-ESS3300#sh cdp nei det
+-------------------------
+Device ID: SW1-ESS3300
+Entry address(es): 
+  IP address: 192.168.1.1
+Platform: cisco ESS-3300-CON,  Capabilities: Switch IGMP 
+Interface: GigabitEthernet1/5,  Port ID (outgoing port): GigabitEthernet1/4
+Holdtime : 141 sec
+
+Total cdp entries displayed : 1
+SW2-ESS3300#sh lldp nei det
+% LLDP is not enabled
+SW2-ESS3300#sh mac add
+          Mac Address Table
+-------------------------------------------
+
+Vlan    Mac Address       Type        Ports
+----    -----------       --------    -----
+ All    0100.0ccc.cccc    STATIC      CPU
+  20    0004.f2aa.0101    DYNAMIC     Gi1/3
+  20    0090.e8bb.0606    DYNAMIC     Gi1/6
+  20    00a0.4501.0007    DYNAMIC     Gi1/7
+  20    00a0.4501.0008    DYNAMIC     Gi1/8
+  20    00a0.4502.0009    DYNAMIC     Gi1/9
+  20    00a0.4502.0010    DYNAMIC     Gi1/10
+Total Mac Addresses for this criterion: 7
+SW2-ESS3300#sh int trans det
+
+SW2-ESS3300#

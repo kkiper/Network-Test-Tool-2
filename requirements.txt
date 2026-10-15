@@ -1,0 +1,2 @@
+netmiko>=4.3
+jsonschema>=4.18

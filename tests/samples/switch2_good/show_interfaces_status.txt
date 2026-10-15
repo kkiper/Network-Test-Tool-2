@@ -1,0 +1,12 @@
+
+Port         Name               Status       Vlan       Duplex  Speed Type
+Gi1/3        VOIP               connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/4                           notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/5        Bulkhead 2-J4      notconnect   20           auto   auto 10/100/1000BaseTX
+Gi1/6        Serial-Eth Conv    connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/7        Radio 2 CH2        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/8        Radio 2 CH1        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/9        Radio 1 CH1        connected    20         a-full a-1000 10/100/1000BaseTX
+Gi1/10       Radio 1 CH2        connected    20         a-full a-1000 10/100/1000BaseTX
+Te1/1                           notconnect   1            full    10G Not Present
+Te1/2                           notconnect   1            full    10G Not Present
