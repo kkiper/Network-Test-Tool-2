@@ -55,8 +55,8 @@ def test_build_collectors_live_and_offline():
     (False, {}, "admin", "pw", "Enter the IP address for Switch 1"),
     (False, {"switch1": "10.0.0.1"}, "", "pw", "Enter the switch username"),
     (False, {"switch1": "10.0.0.1"}, "admin", "", "Enter the switch password"),
-    (True, {}, "", "", "Choose the saved output file for Switch 1"),
-    (True, {"switch1": "/no/such/file.log"}, "", "", "Can't find the saved output"),
+    (True, {}, "", "", "Choose the self test file for Switch 1"),
+    (True, {"switch1": "/no/such/file.log"}, "", "", "Can't find the self test file"),
 ])
 def test_build_collectors_explains_what_is_missing(offline, addresses, user, pw, message):
     plan = load_test(os.path.join(CONFIGS, "switch1.json"))
@@ -76,3 +76,34 @@ def test_settings_never_store_passwords(tmp_path):
                         path)
     assert logic.load_settings(path) == {"site": "standard-build"}
     assert logic.load_settings(str(tmp_path / "missing.json")) == {}
+
+
+def test_check_serials():
+    from nettest import load_test
+    plan = load_test(os.path.join(logic.configs_dir(), "standard-build", "combined.json"))
+    assert logic.check_serials(plan, {"switch1": " fcw2233a1b ", "switch2": "FCW-1234"}) == \
+        {"switch1": "FCW2233A1B", "switch2": "FCW-1234"}
+    assert logic.check_serials(plan, {"switch1": "FCW2233A1B", "switch2": " "}) == \
+        {"switch1": "FCW2233A1B"}                        # serials are optional
+    with pytest.raises(logic.FormError, match="longer than 10"):
+        logic.check_serials(plan, {"switch1": "FCW2233A1BX", "switch2": "A"})
+    with pytest.raises(logic.FormError, match="letters, numbers"):
+        logic.check_serials(plan, {"switch1": "FCW 2233", "switch2": "A"})
+    assert logic.serial_fits("ABCDEFGHIJ") and not logic.serial_fits("ABCDEFGHIJK")
+
+
+def test_check_date():
+    assert logic.check_date("2026-10-15") == "2026-10-15"
+    assert logic.check_date("") == logic.today()
+    with pytest.raises(logic.FormError, match="year-month-day"):
+        logic.check_date("10/15/2026")
+
+
+def test_details_text_shows_neighbor_and_port():
+    from nettest import OfflineCollector, load_test, run_test
+    plan = load_test(os.path.join(logic.configs_dir(), "standard-build", "combined.json"))
+    here = os.path.dirname(os.path.abspath(__file__))
+    report = run_test(plan, {sid: OfflineCollector(os.path.join(here, "samples", "combined_%s.log" % sid))
+                             for sid in ("switch1", "switch2")})
+    gi14 = next(r for r in report.ports() if r.diagram_label == "GI 1/4" and r.switch_id == "switch1")
+    assert "neighbor SW2-ESS3300.example.local port GI 1/5" in logic.details_text(gi14)

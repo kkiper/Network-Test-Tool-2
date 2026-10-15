@@ -322,12 +322,17 @@ def test_progress_and_save(tmp_path):
     messages = []
     plan = load_test(config("switch1.json"))
     report = run_test(plan, {"switch1": OfflineCollector(sample("switch1_faults.log"))},
-                      on_progress=messages.append)
+                      on_progress=messages.append, serials={"switch1": "FCW2233A1B"},
+                      test_date="2026-10-14")
     assert messages[-1] == "Done: FAIL"
     json_path, txt_path = report.save(str(tmp_path), site="Site 7")
-    assert os.path.basename(json_path).startswith("site-7_switch-1_")
+    assert os.path.basename(json_path).startswith("site-7_switch-1_fcw2233a1b_")
     data = json.load(open(json_path))
     assert data["status"] == "fail"
+    assert data["switches"][0]["serial_number"] == "FCW2233A1B"
+    assert data["test_date"] == "2026-10-14"
+    text = open(txt_path).read()
+    assert "  Serial number: FCW2233A1B" in text and "Test date:    2026-10-14" in text
     assert data["counts"]["fail"] == 5
     assert "Fix:" in open(txt_path).read()
 
@@ -391,3 +396,14 @@ def test_laptop_bulkhead_must_have_link(tmp_path):
     g = by_label(run_single(str(site / "switch2.json"), str(folder)))["GI 1/5"]
     assert g.status == Status.FAIL
     assert g.target == "Test laptop via bulkhead 2-J4"
+
+
+def test_neighbor_device_and_port():
+    report = run_combined(sample("combined_switch1.log"), sample("combined_switch2.log"))
+    sw1, sw2 = by_label(report, "switch1"), by_label(report, "switch2")
+    assert (sw1["GI 1/4"].neighbor_device, sw1["GI 1/4"].neighbor_port) == \
+        ("SW2-ESS3300.example.local", "GI 1/5")
+    assert (sw2["GI 1/5"].neighbor_device, sw2["GI 1/5"].neighbor_port) == ("SW1-ESS3300", "GI 1/4")
+    assert sw1["GI 1/3"].neighbor_device == "server01"     # LLDP from the server
+    assert sw1["GI 1/8"].neighbor_device == ""             # UPS doesn't speak CDP/LLDP
+    assert report.to_dict()["switches"][0]["ports"][0]["neighbor_device"] == "server01"

@@ -63,6 +63,26 @@ class PortResult:
         """IP address(es) seen on the port, for display ("" if none)."""
         return ", ".join((self.observed or {}).get("ips") or [])
 
+    def neighbors(self):
+        """``[(device_id, port_id)]`` of CDP/LLDP neighbors, without repeats."""
+        seen = []
+        for n in (self.observed or {}).get("neighbors") or []:
+            pair = (n.get("device_id") or "",
+                    drawing_label(n["remote_port"]) if n.get("remote_port") else "")
+            if pair not in seen:   # CDP and LLDP often report the same neighbor
+                seen.append(pair)
+        return seen
+
+    @property
+    def neighbor_device(self):
+        """Device ID(s) of CDP/LLDP neighbors on the port, for display ("" if none)."""
+        return ", ".join(d for d, _ in self.neighbors())
+
+    @property
+    def neighbor_port(self):
+        """The neighbor's own port ID(s), e.g. ``GI 1/5`` ("" if none)."""
+        return ", ".join(p for _, p in self.neighbors())
+
     @property
     def summary(self):
         """The single most important line, for a one-row-per-port list."""
@@ -81,6 +101,8 @@ class PortResult:
             "diagram_label": self.diagram_label,
             "target": self.target,
             "ip": self.ip,
+            "neighbor_device": self.neighbor_device,
+            "neighbor_port": self.neighbor_port,
             "media": self.media,
             "listed": self.listed,
             "status": self.status.value,

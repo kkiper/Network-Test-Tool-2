@@ -19,9 +19,12 @@ On Linux, tkinter may need installing first (`sudo apt install python3-tk`);
 the Windows installer from python.org includes it.
 
 1. **Site**: pick the folder under `configs/` for the site (or Browse to one).
-2. **What are you testing?**: Switch 1, Switch 2, or both connected.
+2. **What are you testing?**: Switch 1, Switch 2, or both connected. Under
+   the choices, check the test date (today's date is filled in) and type
+   each switch's S/N if you have it (up to 10 letters, numbers or dashes;
+   one box per switch, so two for the combined test; can be left blank).
 3. **Connect to the switch**: type the switch IP, username and password, or
-   choose *Saved output file* to check a saved PuTTY log instead.
+   choose *Self Test File* to check a saved PuTTY log instead.
 4. Press **Run test**.
 
 ![Window before a test](docs/gui-start.png)
@@ -30,10 +33,13 @@ The banner turns green, yellow or red. Problems are listed first; click any
 port to see what the switch reported and how to fix it.
 The IP address column shows the device's IP when the switch knows it (from
 its device-tracking table, its ARP table, or CDP/LLDP); it's blank for a
-device the switch hasn't talked to. Every run is saved to
-`reports/<site>/` as a `.txt` report (and a `.json` copy), and *Open report*
-opens it. The window remembers the site, test, IPs and username between runs,
-never the password.
+device the switch hasn't talked to. The Neighbor device ID and Neighbor port ID
+columns show what the device on the port announces over CDP or LLDP (its
+name, and the port on its end); they're blank for devices that don't use
+either, which is common for end devices. Every run is saved to
+`reports/<site>/` as a `.txt` report (and a `.json` copy), with the test date
+and any serial numbers in the report (serials also go in its file name), and *Open report* opens it. The window remembers the site, test, IPs and username between runs,
+never the password or serial numbers.
 
 ![Results of a Switch 1 test with problems](docs/gui-results.png)
 

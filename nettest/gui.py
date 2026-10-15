@@ -41,11 +41,13 @@ class App(ttk.Frame):
 
         self.site = tk.StringVar(value=self.settings.get("site", ""))
         self.test_path = tk.StringVar()
+        self.test_date = tk.StringVar(value=logic.today())
         self.mode = tk.StringVar(value="live")
         self.username = tk.StringVar(value=self.settings.get("username", ""))
         self.password = tk.StringVar()
         self.enable = tk.StringVar()
         self.addresses = {}        # switch id -> StringVar
+        self.serials = {}          # switch id -> StringVar, never saved to settings
         self.progress = tk.StringVar(value="Fill in the left side, then press Run test.")
         self.saved = tk.StringVar()
 
@@ -74,14 +76,16 @@ class App(ttk.Frame):
 
         ttk.Label(left, text="2. What are you testing?", style="Step.TLabel").grid(sticky="w")
         self.tests_frame = ttk.Frame(left)
-        self.tests_frame.grid(sticky="ew", pady=(2, 10))
+        self.tests_frame.grid(sticky="ew", pady=(2, 4))
+        self.unit_frame = ttk.Frame(left)      # test date and serial numbers
+        self.unit_frame.grid(sticky="ew", pady=(0, 10))
 
         ttk.Label(left, text="3. Connect to the switch", style="Step.TLabel").grid(sticky="w")
         modes = ttk.Frame(left)
         modes.grid(sticky="w", pady=(2, 4))
         ttk.Radiobutton(modes, text="Live switch", value="live", variable=self.mode,
                         command=self._build_connection).pack(side="left")
-        ttk.Radiobutton(modes, text="Saved output file", value="offline", variable=self.mode,
+        ttk.Radiobutton(modes, text="Self Test File", value="offline", variable=self.mode,
                         command=self._build_connection).pack(side="left", padx=8)
         self.conn_frame = ttk.Frame(left)
         self.conn_frame.grid(sticky="ew", pady=(0, 12))
@@ -107,13 +111,15 @@ class App(ttk.Frame):
         table.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
         table.columnconfigure(0, weight=1)
         table.rowconfigure(0, weight=1)
-        cols = ("result", "switch", "port", "target", "ip", "found")
+        cols = ("result", "switch", "port", "target", "ip", "nbr_device", "nbr_port", "found")
         self.tree = ttk.Treeview(table, columns=cols, show="headings", selectmode="browse")
         for col, title, width, stretch in (
                 ("result", "Result", 60, False), ("switch", "Switch", 80, False),
-                ("port", "From (ETH Switch Port)", 180, False), ("target", "To", 220, False),
-                ("ip", "IP address", 110, False),
-                ("found", "What the test found", 360, True)):
+                ("port", "From (ETH Switch Port)", 175, False), ("target", "To", 210, False),
+                ("ip", "IP address", 105, False),
+                ("nbr_device", "Neighbor device ID", 175, False),
+                ("nbr_port", "Neighbor port ID", 135, False),
+                ("found", "What the test found", 300, True)):
             self.tree.heading(col, text=title, anchor="w")
             self.tree.column(col, width=width, stretch=stretch, anchor="w")
         for status, (bg, _, _) in COLORS.items():
@@ -188,7 +194,7 @@ class App(ttk.Frame):
         self._build_connection()
 
     def _build_connection(self):
-        for w in self.conn_frame.winfo_children():
+        for w in self.conn_frame.winfo_children() + self.unit_frame.winfo_children():
             w.destroy()
         self.plan = None
         if not self.test_path.get():
@@ -202,6 +208,18 @@ class App(ttk.Frame):
 
         offline = self.mode.get() == "offline"
         remembered = self.settings.get("addresses", {})
+        fits = (self.register(logic.serial_fits), "%P")
+        ttk.Label(self.unit_frame, text="Test date").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Entry(self.unit_frame, textvariable=self.test_date, width=12).grid(
+            row=0, column=1, sticky="w", padx=4)
+        for r, sw in enumerate(self.plan.switches, start=1):
+            sn = self.serials.get(sw.id)
+            if sn is None:
+                sn = self.serials[sw.id] = tk.StringVar()
+            ttk.Label(self.unit_frame, text="%s S/N" % sw.name
+                      ).grid(row=r, column=0, sticky="w", pady=2)
+            ttk.Entry(self.unit_frame, textvariable=sn, width=12, validate="key",
+                      validatecommand=fits).grid(row=r, column=1, sticky="w", padx=4)
         r = 0
         for sw in self.plan.switches:
             var = self.addresses.get(sw.id)
@@ -229,7 +247,7 @@ class App(ttk.Frame):
                       foreground="#777").grid(row=r, column=0, columnspan=2, sticky="w")
 
     def _browse_file(self, var):
-        path = filedialog.askopenfilename(title="Choose saved switch output",
+        path = filedialog.askopenfilename(title="Choose the self test file",
                                           filetypes=[("Logs and text", "*.log *.txt"),
                                                      ("All files", "*.*")])
         if path:
@@ -241,6 +259,9 @@ class App(ttk.Frame):
         if self.running or self.plan is None:
             return
         try:
+            test_date = logic.check_date(self.test_date.get())
+            serials = logic.check_serials(self.plan, {sid: v.get() for sid, v in
+                                                      self.serials.items()})
             collectors = logic.build_collectors(
                 self.plan, self.mode.get() == "offline",
                 {sid: v.get() for sid, v in self.addresses.items()},
@@ -259,7 +280,7 @@ class App(ttk.Frame):
 
         def work():
             try:
-                report = run_test(plan, collectors,
+                report = run_test(plan, collectors, serials=serials, test_date=test_date,
                                   on_progress=lambda m: self.events.put(("progress", m)))
                 self.events.put(("done", report))
             except Exception as e:  # never leave the window stuck on "Testing..."
@@ -307,13 +328,14 @@ class App(ttk.Frame):
         for sw in report.switches:
             if sw.error:
                 item = self.tree.insert("", "end", values=(
-                    "FAIL", sw.name, "", "", "", "Could not test %s: %s" % (sw.name, sw.error)),
+                    "FAIL", sw.name, "", "", "", "", "",
+                    "Could not test %s: %s" % (sw.name, sw.error)),
                     tags=(Status.FAIL.value,))
                 self.rows[item] = sw
         for r in logic.sorted_rows(report):
             item = self.tree.insert("", "end", values=(
                 logic.STATUS_TEXT[r.status], r.switch_name, r.diagram_label, r.target, r.ip,
-                r.summary),
+                r.neighbor_device, r.neighbor_port, r.summary),
                 tags=(r.status.value,))
             self.rows[item] = r
         first = self.tree.get_children()
@@ -391,7 +413,7 @@ def _open_path(path):
 def main():
     root = tk.Tk()
     root.title("Network Test Tool")
-    root.geometry("1280x700")
+    root.geometry("1540x700")
     root.minsize(900, 520)
     style = ttk.Style(root)
     if "clam" in style.theme_names() and not sys.platform.startswith("win"):

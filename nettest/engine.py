@@ -25,6 +25,7 @@ from .collectors import OPTIONAL_COMMANDS, CollectionError
 class SwitchReport:
     id: str
     name: str
+    serial: str = None
     source: str = None
     hostname: str = None
     error: str = None
@@ -39,7 +40,8 @@ class SwitchReport:
 
     def to_dict(self):
         return {
-            "id": self.id, "name": self.name, "source": self.source,
+            "id": self.id, "name": self.name, "serial_number": self.serial,
+            "source": self.source,
             "hostname": self.hostname, "error": self.error,
             "status": self.status.value,
             "commands_unavailable": self.unavailable,
@@ -54,6 +56,7 @@ class TestReport:
     config_path: str
     started_at: str
     finished_at: str = None
+    test_date: str = None
     switches: list = field(default_factory=list)
 
     @property
@@ -74,6 +77,7 @@ class TestReport:
         return {
             "test_name": self.test_name, "mode": self.mode,
             "config_path": self.config_path,
+            "test_date": self.test_date,
             "started_at": self.started_at, "finished_at": self.finished_at,
             "status": self.status.value, "counts": self.counts(),
             "switches": [s.to_dict() for s in self.switches],
@@ -83,12 +87,15 @@ class TestReport:
         """A plain-text report a tech can read or print."""
         icon = {"pass": "PASS", "warn": "WARN", "fail": "FAIL", "not_configured": "N/A "}
         lines = ["Network test: %s" % self.test_name,
+                 "Test date:    %s" % (self.test_date or self.started_at[:10]),
                  "Run at:       %s" % self.started_at,
                  "Result:       %s" % self.status.value.upper().replace("_", " "),
                  ""]
         for sw in self.switches:
             head = "%s%s" % (sw.name, " (%s)" % sw.hostname if sw.hostname else "")
             lines += [head, "-" * len(head)]
+            if sw.serial:
+                lines.append("  Serial number: %s" % sw.serial)
             if sw.error:
                 lines += ["  FAIL  Could not test this switch: %s" % sw.error, ""]
                 continue
@@ -117,7 +124,8 @@ class TestReport:
         """
         os.makedirs(folder, exist_ok=True)
         stamp = (self.started_at or "").replace(":", "").replace("-", "")[:15]
-        base = "_".join(_slug(p) for p in (site, self.test_name, stamp) if p)
+        serials = "-".join(s.serial for s in self.switches if s.serial)
+        base = "_".join(_slug(p) for p in (site, self.test_name, serials, stamp) if p)
         json_path = os.path.join(folder, base + ".json")
         txt_path = os.path.join(folder, base + ".txt")
         with open(json_path, "w", encoding="utf-8") as f:
@@ -135,22 +143,25 @@ def _now():
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
-def run_test(plan, collectors, on_progress=None):
+def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
     """Collect from every switch in ``plan`` and check it.
 
     ``collectors`` maps switch id (``"switch1"``) to an object with a
     ``collect(on_progress)`` method, i.e. :class:`~nettest.SshCollector` or
     :class:`~nettest.OfflineCollector`. ``on_progress`` gets short status
     strings while the test runs. A switch that can't be reached is reported
-    as an error on that switch rather than raising.
+    as an error on that switch rather than raising. ``serials`` optionally
+    maps switch id to the serial number the tech typed in; it is only
+    recorded in the report, as is ``test_date`` (defaults to today).
     """
     say = on_progress or (lambda msg: None)
     report = TestReport(test_name=plan.name, mode=plan.mode, config_path=plan.path,
                         started_at=_now())
+    report.test_date = test_date or report.started_at[:10]
 
     snapshots = {}
     for sw in plan.switches:
-        sr = SwitchReport(id=sw.id, name=sw.name)
+        sr = SwitchReport(id=sw.id, name=sw.name, serial=(serials or {}).get(sw.id) or None)
         report.switches.append(sr)
         collector = collectors.get(sw.id)
         if collector is None:
