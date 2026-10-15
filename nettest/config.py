@@ -65,16 +65,46 @@ class SwitchPlan:
 class TestPlan:
     """A loaded test: one switch (single mode) or two (combined mode)."""
 
-    mode: str          # "single" or "combined"
+    mode: str          # "single", "combined" or "jack_test"
     name: str
     path: str
     switches: list     # [SwitchPlan]
+    jack_test: object = None   # JackTestPlan, for mode "jack_test"
 
     def switch(self, switch_id):
         for s in self.switches:
             if s.id == switch_id:
                 return s
         raise KeyError(switch_id)
+
+
+@dataclass
+class Jack:
+    """One bulkhead jack in a jack test: which switch port and test-switch port it joins."""
+
+    jack: str
+    switch_port: str
+    test_switch_port: str
+    control: bool = False
+    note: str = None
+
+
+@dataclass
+class JackTestPlan:
+    """A bulkhead jack test: the test switch turns ports on and off one at a time."""
+
+    switch_id: str
+    test_switch_id: str
+    jacks: list                 # [Jack], control jack last
+    also_shut: list = field(default_factory=list)
+    speed_mbps: int = 1000
+    duplex: str = "full"
+    link_timeout: float = 15
+    note: str = None
+
+    @property
+    def control(self):
+        return next((j for j in self.jacks if j.control), None)
 
 
 def _read_json(path):
@@ -95,7 +125,8 @@ def _validate(data, schema_name, path):
     except ImportError:  # validation is a nice-to-have, not a requirement
         return
     schemas = {}
-    for name in ("switch-config.schema.json", "combined-config.schema.json"):
+    for name in ("switch-config.schema.json", "combined-config.schema.json",
+                 "jack-test.schema.json"):
         with open(os.path.join(SCHEMA_DIR, name), encoding="utf-8") as f:
             schemas[name] = json.load(f)
     registry = Registry().with_resources(
@@ -155,6 +186,8 @@ def load_test(path):
     data = _read_json(path)
     if data.get("test") == "combined":
         return _load_combined(path, data)
+    if data.get("test") == "jack_test":
+        return _load_jack_test(path, data)
     plan = _load_switch(path)
     return TestPlan(mode="single", name=plan.name, path=path, switches=[plan])
 
@@ -216,12 +249,48 @@ def _load_combined(path, data):
                     switches=[switches[e["id"]] for e in data["switches"]])
 
 
+def _load_jack_test(path, data):
+    _validate(data, "jack-test.schema.json", path)
+    try:
+        sw, ts = data["switch"], data["test_switch"]
+        expect = data.get("expect", {})
+        jacks = [Jack(jack=j["jack"], switch_port=normalize_interface(j["switch_port"]),
+                      test_switch_port=normalize_interface(j["test_switch_port"]),
+                      control=bool(j.get("control")), note=j.get("note"))
+                 for j in data["jacks"]]
+    except (KeyError, TypeError) as e:
+        raise ConfigError("%s is missing a required setting: %s" % (os.path.basename(path), e))
+    if sum(j.control for j in jacks) > 1:
+        raise ConfigError("%s marks more than one jack as the control link."
+                          % os.path.basename(path))
+    if sw["id"] == ts["id"]:
+        raise ConfigError("%s gives the switch and the test switch the same id."
+                          % os.path.basename(path))
+    for attr in ("switch_port", "test_switch_port"):
+        seen = [getattr(j, attr) for j in jacks]
+        dupes = sorted({p for p in seen if seen.count(p) > 1})
+        if dupes:
+            raise ConfigError("%s uses %s for more than one jack."
+                              % (os.path.basename(path), dupes[0]))
+    jacks.sort(key=lambda j: j.control)   # control link is tested last
+    jt = JackTestPlan(
+        switch_id=sw["id"], test_switch_id=ts["id"], jacks=jacks,
+        also_shut=[normalize_interface(p) for p in ts.get("also_shut", [])],
+        speed_mbps=expect.get("speed_mbps", 1000), duplex=expect.get("duplex", "full"),
+        link_timeout=data.get("link_timeout_seconds", 15), note=data.get("note"))
+    switches = [SwitchPlan(id=sw["id"], name=sw["name"], model="", unlisted_ports="ignore"),
+                SwitchPlan(id=ts["id"], name=ts["name"], model="", unlisted_ports="ignore")]
+    return TestPlan(mode="jack_test", name=data.get("name", "Bulkhead jacks"), path=path,
+                    switches=switches, jack_test=jt)
+
+
 def find_tests(site_dir):
     """List the tests available in a site folder, for a GUI picker.
 
-    Returns ``[(label, path)]`` with single-switch tests first, then combined.
+    Returns ``[(label, path)]`` with single-switch tests first, then combined,
+    then bulkhead jack tests.
     """
-    singles, combined = [], []
+    singles, combined, jacks = [], [], []
     for fn in sorted(os.listdir(site_dir)):
         if not fn.endswith(".json"):
             continue
@@ -232,6 +301,8 @@ def find_tests(site_dir):
             continue
         if data.get("test") == "combined":
             combined.append((data.get("name", "Combined"), path))
+        elif data.get("test") == "jack_test":
+            jacks.append((data.get("name", "Bulkhead jacks"), path))
         elif "switch" in data and "ports" in data:
             singles.append((data["switch"].get("name", fn), path))
-    return singles + combined
+    return singles + combined + jacks

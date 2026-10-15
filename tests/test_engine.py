@@ -56,10 +56,11 @@ def edit_json(path, fn):
 
 # ---- config loading ------------------------------------------------------
 
-def test_find_tests_lists_singles_then_combined():
+def test_find_tests_lists_singles_then_combined_then_jack_test():
     tests = find_tests(CONFIGS)
     assert [label for label, _ in tests] == ["Switch 1", "Switch 2",
-                                            "Switch 1 + Switch 2 connected"]
+                                            "Switch 1 + Switch 2 connected",
+                                            "Room 1 copper bulkheads (test switch)"]
 
 
 def test_combined_overrides_bulkhead_ports():

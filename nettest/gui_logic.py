@@ -100,6 +100,21 @@ def details_text(result):
     return "\n".join(lines)
 
 
+def jack_test_warning(plan):
+    """The confirmation shown before a bulkhead jack test changes test-switch ports."""
+    control = plan.jack_test.control
+    lines = ["This test logs in to the test switch and turns its bulkhead ports off and "
+             "on, one at a time. The changes aren't saved on the test switch.", "",
+             "Before you start:",
+             "  - the laptop is plugged into a spare port on the test switch"]
+    if control:
+        lines.append("  - test switch %s is cabled to %s"
+                     % (control.test_switch_port, control.jack))
+    lines += ["  - each other test-switch port is cabled to its bulkhead jack", "",
+              "Run the test?"]
+    return "\n".join(lines)
+
+
 class FormError(Exception):
     """Something the tech needs to fill in before the test can run."""
 
@@ -109,6 +124,9 @@ def build_collectors(plan, offline, addresses, username, password, enable=None):
 
     ``addresses`` maps switch id to an IP (live) or a file/folder (offline).
     """
+    if offline and plan.mode == "jack_test":
+        raise FormError("The bulkhead jack test turns test-switch ports on and off, so it "
+                        "needs live switches. Choose Live switch.")
     collectors = {}
     for sw in plan.switches:
         value = (addresses.get(sw.id) or "").strip()

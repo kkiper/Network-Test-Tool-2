@@ -153,7 +153,14 @@ def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
     as an error on that switch rather than raising. ``serials`` optionally
     maps switch id to the serial number the tech typed in; it is only
     recorded in the report, as is ``test_date`` (defaults to today).
+
+    A ``jack_test`` plan is handed to :func:`nettest.jacktest.run_jack_test`,
+    which needs live switches because it turns test-switch ports on and off.
     """
+    if plan.mode == "jack_test":
+        from .jacktest import run_jack_test
+        return run_jack_test(plan, collectors, on_progress=on_progress, serials=serials,
+                             test_date=test_date)
     say = on_progress or (lambda msg: None)
     report = TestReport(test_name=plan.name, mode=plan.mode, config_path=plan.path,
                         started_at=_now())

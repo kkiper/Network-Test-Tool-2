@@ -6,7 +6,8 @@ status, speed, CDP/LLDP neighbors, MAC addresses and SFP light levels, and
 compare them to a JSON config. Each port gets a pass, warn or fail result.
 
 Testing happens in three modes: Switch 1 alone, Switch 2 alone, then both
-switches connected together.
+switches connected together. A fourth test checks Room 1's copper bulkhead
+jacks by turning ports on an external test switch off and on (see below).
 
 ## Running a test (the window)
 
@@ -65,6 +66,57 @@ python -m nettest ... --save reports --site "Site 7"
 
 Exit code is 0 when everything passed, 1 for warnings, 2 for failures and 3
 when a switch couldn't be read.
+
+### Bulkhead jack test (test switch)
+
+`bulkhead-jacks.json` checks Room 1's copper bulkhead jacks by having the tool
+turn ports on an external test switch off and on, one at a time, and watching
+which Switch 1 port follows. It needs both switches live over SSH (same
+username and password for both), and doesn't use the fiber.
+
+Cabling:
+
+```
+Laptop ── test switch spare port (e.g. Gi1/11)
+          test switch Gi1/12 ── 1-J5 ── Switch 1 Gi1/4        control link, stays on
+          test switch Gi1/1-9 ── 1-J6...1-J15 ── Switch 1      turned on one at a time
+```
+
+```
+python -m nettest configs/standard-build/bulkhead-jacks.json \
+    --host switch1=192.168.0.20 --host test_switch=192.168.0.60 --user admin
+```
+
+In the window, pick **Room 1 copper bulkheads (test switch)**, type both IPs,
+and confirm the prompt. What happens:
+
+1. Every test-switch port listed in the config is turned off (`shutdown`),
+   along with the test switch's fiber ports (`also_shut`), except the control
+   port.
+2. For each jack, its test-switch port is turned on. It passes when only the
+   expected Switch 1 port comes up, at 1000 Mb/s full duplex, and goes down
+   again when the port is turned off.
+3. The control jack (1-J5, which carries the laptop's connection to Switch 1)
+   is tested last. A jack that already passed is turned on to carry the
+   connection while the control port is turned off and back on.
+4. The control port is always turned back on at the end, even if the test
+   stops part way. Nothing is saved on the test switch (no `write memory`),
+   so reloading it restores its saved config.
+
+| Result | Meaning |
+|---|---|
+| Pass | Only the expected Switch 1 port came up, at the expected speed and duplex, and went back down |
+| Fail: no port came up | Open cable, wrong jack, or bad termination |
+| Fail: brought up a different port | Cables swapped; names the other jack when it's one of the bulkheads |
+| Fail: came up at 100 Mb/s | One of the four wire pairs is broken or miswired |
+| Fail: half duplex | Damaged pair or bad patch cable |
+| Fail: link with every test-switch port off | The jack is plugged into something other than the test switch |
+| Warn: control jack not tested | No other jack passed, so nothing could carry the connection while 1-J5 was off |
+
+The jack config (`test: "jack_test"`) lists each jack's `switch_port` and
+`test_switch_port`; mark the one carrying the laptop's connection with
+`"control": true`. Change the test-switch ports to match how the test switch
+is actually cabled.
 
 ### What it reads
 
@@ -146,9 +198,11 @@ configs/standard-build/
   switch1.json    Switch 1 wiring
   switch2.json    Switch 2 wiring
   combined.json   both switches connected, plus the link between them
+  bulkhead-jacks.json  Room 1 copper bulkhead jacks, via the external test switch
 schema/
   switch-config.schema.json
   combined-config.schema.json
+  jack-test.schema.json
 ```
 
 Copy `configs/standard-build/` to a new folder if a site is wired differently.

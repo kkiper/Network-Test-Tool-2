@@ -269,6 +269,9 @@ class App(ttk.Frame):
         except logic.FormError as e:
             messagebox.showwarning("Before you run the test", str(e))
             return
+        if self.plan.mode == "jack_test" and not messagebox.askokcancel(
+                "Bulkhead jack test", logic.jack_test_warning(self.plan)):
+            return
 
         self._remember()
         self.running = True
