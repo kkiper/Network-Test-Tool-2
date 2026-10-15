@@ -158,7 +158,7 @@ Each port:
 | `interface` | Full IOS name, e.g. `GigabitEthernet1/3`, `TenGigabitEthernet1/1`. |
 | `diagram_label` | How the port is shown to the tech (`GI 1/3`, `TE 1/1`). |
 | `media` | `copper` or `fiber`. |
-| `connects_to` | `device`, `port` (or `null` if the drawing shows none), and `kind`: `device`, `bulkhead` (passive patch point) or `switch`. |
+| `connects_to` | `device`, `port` (or `null` if the drawing shows none), and `kind`: `device`, `bulkhead` (passive patch point), `switch`, or `unused` (on the drawing but empty: give it `"expect": {"link": "down"}` so the test fails if something is plugged in; skipped if the switch doesn't have the port). |
 | `optic` | Fiber only: SFP part number, type, wavelength, multimode/singlemode. |
 | `expect` | Overrides for this port: `link` (`up`, `optional`, `down`), `speed_mbps`, `duplex`, `cdp_neighbor`, `mac_addresses`, `light_levels_dbm`. |
 | `note` | Plain-English note shown to the tech. |

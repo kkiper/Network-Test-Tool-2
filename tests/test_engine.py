@@ -87,7 +87,7 @@ def test_switch1_good_sample_passes():
     report = run_single(config("switch1.json"), sample("switch1_good.log"))
     assert report.status == Status.PASS, report.to_text()
     assert report.switches[0].hostname == "SW1-ESS3300"
-    assert report.counts()["pass"] == 17
+    assert report.counts()["pass"] == 18
 
 
 def test_switch1_faults_sample():
@@ -109,10 +109,22 @@ def test_switch1_faults_sample():
     assert ports["TE 1/1"].observed["rx_dbm"] == -14.6
     assert ports["TE 1/2"].status == Status.FAIL
     assert "no SFP" in ports["TE 1/2"].summary
-    stray = ports["GI 1/10"]
-    assert not stray.listed and stray.status == Status.WARN
+    unused = ports["GI 1/10"]          # unused on the drawing, but something is plugged in
+    assert unused.status == Status.FAIL
+    assert "nothing should be plugged into it (device MAC 3c:ec:ef:10:20:32)" in unused.summary
     # The internal app-hosting port is always up and is never reported.
-    assert [r.diagram_label for r in report.ports() if not r.listed] == ["GI 1/10"]
+    assert [r.diagram_label for r in report.ports() if not r.listed] == []
+
+
+def test_unused_port_empty_passes_and_missing_one_is_skipped(tmp_path):
+    ports = by_label(run_single(config("switch1.json"), sample("switch1_good.log")))
+    assert ports["GI 1/10"].summary == "GI 1/10 is empty, as expected."
+    site = copy_configs(tmp_path)
+    edit_json(site / "switch1.json", lambda d: d["ports"].append({
+        "interface": "GigabitEthernet3/1", "media": "copper",
+        "connects_to": {"device": "Unused", "kind": "unused"}, "expect": {"link": "down"}}))
+    report = run_single(str(site / "switch1.json"), sample("switch1_good.log"))
+    assert "GI 3/1" not in by_label(report) and report.status == Status.PASS
 
 
 def test_switch2_folder_sample_passes_and_notes_lldp_off():
@@ -189,11 +201,15 @@ def test_swapped_cables_detected_by_mac(tmp_path):
     assert "swapped" in ports["GI 1/3"].findings[-1].action
 
 
-def test_unlisted_fail_if_up(tmp_path):
+def test_unlisted_port_with_link(tmp_path):
+    path = write_variant(tmp_path, sample("switch1_good.log"), [(
+        "Gi2/9                           notconnect   1            auto   auto",
+        "Gi2/9                           connected    1          a-full a-1000")])
+    stray = by_label(run_single(config("switch1.json"), path))["GI 2/9"]
+    assert not stray.listed and stray.status == Status.WARN
     site = copy_configs(tmp_path)
     edit_json(site / "switch1.json", lambda d: d.update(unlisted_ports="fail_if_up"))
-    report = run_single(str(site / "switch1.json"), sample("switch1_faults.log"))
-    assert by_label(report)["GI 1/10"].status == Status.FAIL
+    assert by_label(run_single(str(site / "switch1.json"), path))["GI 2/9"].status == Status.FAIL
 
 
 def test_admin_down_port(tmp_path):
@@ -301,7 +317,7 @@ def test_progress_and_save(tmp_path):
     assert os.path.basename(json_path).startswith("site-7_switch-1_")
     data = json.load(open(json_path))
     assert data["status"] == "fail"
-    assert data["counts"]["fail"] == 4
+    assert data["counts"]["fail"] == 5
     assert "Fix:" in open(txt_path).read()
 
 

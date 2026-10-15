@@ -133,7 +133,7 @@ class SwitchChecker:
         if not self.snap.has("status"):
             reason = self.snap.unavailable.get("show interfaces status", "no output")
             raise ValueError("Couldn't read port status from %s (%s)" % (self.plan.name, reason))
-        results = [self.check_port(p) for p in self.plan.ports]
+        results = [r for r in (self.check_port(p) for p in self.plan.ports) if r is not None]
         results += self.check_unlisted()
         self._add_cross_port_hints(results)
         return results
@@ -158,6 +158,9 @@ class SwitchChecker:
                         "Ask whoever maintains the configs to finish this entry in combined.json."))
             return result
 
+        unused = port.connects_to.get("kind") == "unused"
+        if row is None and unused:
+            return None  # e.g. an expansion-module port on a switch without the module
         if row is None:
             add(Finding(Status.FAIL, "link",
                         "%s (%s) doesn't exist on %s." % (label, port.interface, self.plan.name),
@@ -175,7 +178,7 @@ class SwitchChecker:
             self._check_speed_duplex(result, port, row)
             self._check_neighbor(result, port)
             self._check_macs(result, port)
-        if port.media == "fiber":
+        if port.media == "fiber" and not unused:
             self._check_optic(result, port, row, state)
 
         if not result.findings:
@@ -193,15 +196,20 @@ class SwitchChecker:
 
         if state == "up":
             if want == "down":
-                add(Finding(Status.FAIL, "link",
-                            "%s has a link, but nothing should be plugged into it." % label,
-                            "Unplug the cable from %s, or check the drawing." % label))
+                add(Finding(Status.FAIL, "unused",
+                            "%s has a link, but nothing should be plugged into it%s."
+                            % (label, self._describe_far_end(port.interface)),
+                            "Check whether a cable meant for another port was plugged into "
+                            "%s by mistake, and unplug it." % label))
             else:
                 row = self.snap.status[port.interface]
                 add(Finding(Status.PASS, "link", "%s has link (%s, %s)."
                             % (label, _speed_text(row["speed_mbps"]), row["duplex"] or "auto")))
             return
 
+        if want == "down" and state in ("admin-down", "no-sfp", "down"):
+            add(Finding(Status.PASS, "link", "%s is empty, as expected." % label))
+            return
         if state == "admin-down":
             add(Finding(Status.FAIL if want == "up" else Status.WARN, "link",
                         "%s is turned off in the switch configuration (shutdown)." % label,
@@ -499,20 +507,21 @@ class SwitchChecker:
     # ---- hints that need every port's result --------------------------
 
     def _add_cross_port_hints(self, results):
-        stray = [r for r in results if not r.listed]
+        stray = [r for r in results
+                 if any(f.check in ("unlisted", "unused") and f.status != Status.PASS
+                        for f in r.findings)]
         if not stray:
             return
         names = ", ".join(r.diagram_label for r in stray)
         for r in results:
-            if not r.listed:
+            if r in stray:
                 continue
             nolink = [f for f in r.findings if f.check == "link" and f.status == Status.FAIL
                       and "no link" in f.message]
             for f in nolink:
                 f.action = (f.action or "") + (
-                    " Also: %s %s link but %s not on the drawing; the cable for %s may be "
+                    " Also: %s %s link but should be empty; the cable for %s may be "
                     "in the wrong port." % (names, "has" if len(stray) == 1 else "have",
-                                            "is" if len(stray) == 1 else "are",
                                             r.diagram_label))
 
     # ---- helpers -------------------------------------------------------

@@ -81,6 +81,20 @@
       }
     },
     {
+      "interface": "GigabitEthernet1/10",
+      "diagram_label": "GI 1/10",
+      "media": "copper",
+      "connects_to": {
+        "device": "Unused",
+        "port": null,
+        "kind": "unused"
+      },
+      "expect": {
+        "link": "down"
+      },
+      "note": "Not used on the drawing. Nothing should be plugged in."
+    },
+    {
       "interface": "TenGigabitEthernet1/1",
       "diagram_label": "TE 1/1",
       "media": "fiber",

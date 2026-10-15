@@ -106,6 +106,20 @@
         "link": "optional"
       },
       "note": "Passive bulkhead. Link only comes up when something is plugged into the outside of the bulkhead, so link is optional."
+    },
+    {
+      "interface": "GigabitEthernet1/4",
+      "diagram_label": "GI 1/4",
+      "media": "copper",
+      "connects_to": {
+        "device": "Unused",
+        "port": null,
+        "kind": "unused"
+      },
+      "expect": {
+        "link": "down"
+      },
+      "note": "Not used on the drawing. Nothing should be plugged in."
     }
   ]
 }

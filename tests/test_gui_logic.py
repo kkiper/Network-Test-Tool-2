@@ -21,8 +21,8 @@ def test_list_sites_finds_standard_build():
 
 def test_sorted_rows_puts_problems_first_in_config_order():
     rows = logic.sorted_rows(faults_report())
-    assert [r.diagram_label for r in rows[:5]] == ["GI 1/5", "GI 1/9", "TE 1/1", "TE 1/2", "GI 1/10"]
-    assert [r.status for r in rows[:5]] == [Status.FAIL] * 4 + [Status.WARN]
+    assert [r.diagram_label for r in rows[:5]] == ["GI 1/5", "GI 1/9", "GI 1/10", "TE 1/1", "TE 1/2"]
+    assert [r.status for r in rows[:5]] == [Status.FAIL] * 5
     assert all(r.status == Status.PASS for r in rows[5:])
 
 

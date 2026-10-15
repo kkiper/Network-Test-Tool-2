@@ -111,7 +111,8 @@
               "enum": [
                 "device",
                 "bulkhead",
-                "switch"
+                "switch",
+                "unused"
               ]
             }
           }
