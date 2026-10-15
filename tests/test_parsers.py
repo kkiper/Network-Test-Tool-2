@@ -152,4 +152,4 @@ def test_parse_device_tracking():
     dt = parsers.parse_device_tracking(open(path).read())
     assert dt["GigabitEthernet1/3"] == ["192.168.0.11"]
     assert dt["GigabitEthernet1/6"] == ["192.168.0.16"]
-    assert len(dt) == 4
+    assert len(dt) == 5

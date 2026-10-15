@@ -13,9 +13,6 @@
       }
     }
   },
-  "ip_subnets": [
-    "192.168.0.0/24"
-  ],
   "unlisted_ports": "warn_if_up",
   "ports": [
     {
@@ -107,14 +104,14 @@
       "diagram_label": "GI 1/5",
       "media": "copper",
       "connects_to": {
-        "device": "Bulkhead RJ-45",
+        "device": "Test laptop via bulkhead",
         "port": "2-J4",
         "kind": "bulkhead"
       },
       "expect": {
-        "link": "optional"
+        "link": "up"
       },
-      "note": "Passive bulkhead. Link only comes up when something is plugged into the outside of the bulkhead, so link is optional."
+      "note": "The test laptop plugs into the outside of bulkhead 2-J4 for the Switch 2 test, so this port should have link. Add the laptop's IP as expect.ip_address if you want it checked."
     },
     {
       "interface": "GigabitEthernet1/4",

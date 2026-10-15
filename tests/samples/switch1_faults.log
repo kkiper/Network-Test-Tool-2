@@ -3,7 +3,7 @@ SW1-ESS3300#show interfaces status
 
 Port         Name               Status       Vlan       Duplex  Speed Type
 Gi1/3        Server P1          connected    10         a-full a-1000 10/100/1000BaseTX
-Gi1/4        Bulkhead 1-J5      notconnect   10           auto   auto 10/100/1000BaseTX
+Gi1/4        Bulkhead 1-J5      connected    10         a-full a-1000 10/100/1000BaseTX
 Gi1/5        Server P2          notconnect   10           auto   auto 10/100/1000BaseTX
 Gi1/6        Bulkhead 1-J6      notconnect   10           auto   auto 10/100/1000BaseTX
 Gi1/7        Server P3          connected    10         a-full  a-100 10/100/1000BaseTX

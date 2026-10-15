@@ -137,8 +137,6 @@ def _build_switch(data):
         media = p["media"]
         expect = _merge_expect(defaults.get(media, {}).get("expect"), p.get("expect"))
         expect.setdefault("link", "up")
-        if data.get("ip_subnets"):
-            expect.setdefault("ip_subnets", list(data["ip_subnets"]))
         plan.ports.append(PortExpectation(
             interface=normalize_interface(p["interface"]),
             diagram_label=p.get("diagram_label") or p["interface"],

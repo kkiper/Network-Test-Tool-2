@@ -54,9 +54,6 @@
         }
       }
     },
-    "ip_subnets": {
-      "$ref": "#/$defs/subnets"
-    },
     "unlisted_ports": {
       "enum": [
         "ignore",
@@ -185,9 +182,6 @@
             "string"
           ]
         },
-        "ip_subnets": {
-          "$ref": "#/$defs/subnets"
-        },
         "ip_address": {
           "type": "string",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"
@@ -212,13 +206,6 @@
             }
           }
         }
-      }
-    },
-    "subnets": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^[0-9.]+/[0-9]+$"
       }
     },
     "range": {

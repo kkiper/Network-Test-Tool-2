@@ -6,7 +6,6 @@ is wrong) and ``action`` (what the tech should do about it), written for
 someone who has never seen IOS output.
 """
 
-import ipaddress
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
@@ -185,7 +184,7 @@ class SwitchChecker:
             self._check_speed_duplex(result, port, row)
             self._check_neighbor(result, port)
             self._check_macs(result, port)
-            self._check_subnet(result, port)
+            self._check_ip(result, port)
         if port.media == "fiber" and not unused:
             self._check_optic(result, port, row, state)
 
@@ -383,46 +382,28 @@ class SwitchChecker:
                             "A different device is plugged in, or %s hasn't sent any traffic "
                             "yet. Check the cable goes to %s." % (port.target, port.target)))
 
-    def _check_subnet(self, result, port):
-        """Compare the device's IP with the one in the drawing, else the subnet.
+    def _check_ip(self, result, port):
+        """Compare the device's IP with the one in the config, if one is listed.
 
-        Neither ever fails a port: a matching IP passes, anything else warns.
+        Never fails a port: a matching IP passes, a different one warns, and a
+        port with no ``ip_address`` (IP not known yet) isn't checked.
         """
-        if port.connects_to.get("kind") == "switch":
+        want_ip = port.expect.get("ip_address")
+        if not want_ip or port.connects_to.get("kind") == "switch":
             return
         ips = result.observed.get("ips") or []
         if not ips:
-            return  # the switch hasn't seen an IP for this device; nothing to check
+            return  # the switch hasn't seen an IP for this device; nothing to compare
         label = port.diagram_label
-        want_ip = port.expect.get("ip_address")
-        if want_ip:
-            if want_ip in ips:
-                result.findings.append(Finding(
-                    Status.PASS, "ip", "%s's device has the expected IP (%s)." % (label, want_ip)))
-            else:
-                result.findings.append(Finding(
-                    Status.WARN, "ip", "%s's device has IP %s, but the drawing says %s."
-                    % (label, ", ".join(ips), want_ip),
-                    "Check that %s is set to %s, and that the right device is plugged "
-                    "into %s." % (port.target, want_ip, label)))
-            return
-        subnets = port.expect.get("ip_subnets")
-        if not subnets:
-            return
-        nets = [ipaddress.ip_network(s, strict=False) for s in subnets]
-        wanted = ", ".join(subnets)
-        outside = [ip for ip in ips if not any(ipaddress.ip_address(ip) in n for n in nets)]
-        if not outside:
+        if want_ip in ips:
             result.findings.append(Finding(
-                Status.PASS, "subnet", "%s's device IP %s is in the right subnet (%s)."
-                % (label, ", ".join(ips), wanted)))
-            return
-        result.findings.append(Finding(
-            Status.WARN, "subnet",
-            "%s's device has IP %s, which isn't in this site's subnet (%s)."
-            % (label, ", ".join(outside), wanted),
-            "Set %s's IP address to one in %s, or check that the right device is "
-            "plugged into %s." % (port.target, wanted, label)))
+                Status.PASS, "ip", "%s's device has the expected IP (%s)." % (label, want_ip)))
+        else:
+            result.findings.append(Finding(
+                Status.WARN, "ip", "%s's device has IP %s, but the drawing says %s."
+                % (label, ", ".join(ips), want_ip),
+                "Check that %s is set to %s, and that the right device is plugged "
+                "into %s." % (port.target, want_ip, label)))
 
     def _check_optic(self, result, port, row, state):
         add = result.findings.append

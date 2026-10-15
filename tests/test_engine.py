@@ -70,7 +70,7 @@ def test_combined_overrides_bulkhead_ports():
     assert p.peer["interface"] == "GigabitEthernet1/5"
     assert p.target == "Switch 2 GI 1/5"
     single = load_test(config("switch1.json"))
-    assert single.switch("switch1").port("Gi1/4").expect["link"] == "optional"
+    assert single.switch("switch1").port("Gi1/4").expect["link"] == "up"   # test laptop
 
 
 def test_bad_config_gives_readable_error(tmp_path):
@@ -131,7 +131,8 @@ def test_ip_addresses_from_arp_and_device_tracking():
     sw1 = by_label(run_single(config("switch1.json"), sample("switch1_good.log")))
     assert sw1["GI 1/3"].ip == "192.168.0.21"        # ARP entry for the port's MAC
     assert sw1["GI 1/8"].ip == "192.168.0.25"
-    assert sw1["GI 1/4"].ip == ""                  # nothing plugged in
+    assert sw1["GI 1/4"].ip == "192.168.0.200"       # test laptop on 1-J5
+    assert sw1["GI 1/6"].ip == ""                  # nothing plugged in
     sw2 = by_label(run_single(config("switch2.json"), sample("switch2_good")))
     assert sw2["GI 1/6"].ip == "192.168.0.16"        # device-tracking database
     assert sw2["GI 1/7"].ip == ""                  # radio not in the table
@@ -344,11 +345,6 @@ def test_cli_exit_codes(tmp_path, capsys):
     assert json.loads(out[out.index("{"):])["status"] == "pass"
 
 
-def _no_expected_ips(d):
-    for p in d["ports"]:
-        p["expect"].pop("ip_address", None)
-
-
 def test_expected_ip_matches(tmp_path):
     ports = by_label(run_single(os.path.join(CONFIGS, "switch2.json"), sample("switch2_good")))
     assert ports["GI 1/3"].status == Status.PASS
@@ -372,33 +368,26 @@ def test_wrong_ip_warns_not_fails(tmp_path):
         f for f in g.findings if f.check == "ip").action
 
 
-def test_subnet_check(tmp_path):
-    site = copy_configs(tmp_path)
-    edit_json(site / "switch2.json", lambda d: (_no_expected_ips(d),
-                                                d.update(ip_subnets=["192.168.0.0/24"])))
-    ports = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))
-    assert ports["GI 1/3"].status == Status.PASS
-    assert "in the right subnet" in ports["GI 1/3"].summary
-    assert ports["GI 1/7"].status == Status.PASS      # no IP seen: nothing to check
-
-    edit_json(site / "switch2.json", lambda d: d.update(ip_subnets=["10.20.0.0/24"]))
-    g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
-    assert g.status == Status.WARN
-    assert g.summary == ("GI 1/6's device has IP 192.168.0.16, which isn't in this site's "
-                         "subnet (10.20.0.0/24).")
-    assert "Set Serial to Ethernet Converter's IP address" in next(f for f in g.findings if f.check == "subnet").action
-
-
-def test_subnet_can_be_overridden_per_port(tmp_path):
+def test_no_expected_ip_means_no_ip_check(tmp_path):
     site = copy_configs(tmp_path)
 
     def setup(d):
-        _no_expected_ips(d)
-        d["ip_subnets"] = ["10.20.0.0/24"]
         for p in d["ports"]:
-            if p["interface"] != "GigabitEthernet1/6":
-                p["expect"]["ip_subnets"] = ["192.168.0.0/24"]
+            p["expect"].pop("ip_address", None)
     edit_json(site / "switch2.json", setup)
-    ports = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))
-    assert ports["GI 1/3"].status == Status.PASS
-    assert ports["GI 1/6"].status == Status.WARN
+    g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
+    assert g.status == Status.PASS and g.ip == "192.168.0.16"
+    assert not any(f.check == "ip" for f in g.findings)
+
+
+def test_laptop_bulkhead_must_have_link(tmp_path):
+    site = copy_configs(tmp_path)
+    folder = tmp_path / "sw2"
+    shutil.copytree(sample("switch2_good"), folder)
+    status = folder / "show_interfaces_status.txt"
+    status.write_text(status.read_text().replace(
+        "Gi1/5        Bulkhead 2-J4      connected    20         a-full a-1000",
+        "Gi1/5        Bulkhead 2-J4      notconnect   20           auto   auto"))
+    g = by_label(run_single(str(site / "switch2.json"), str(folder)))["GI 1/5"]
+    assert g.status == Status.FAIL
+    assert g.target == "Test laptop via bulkhead 2-J4"
