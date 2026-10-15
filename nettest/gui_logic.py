@@ -4,6 +4,7 @@ Kept separate from :mod:`nettest.gui` so they can be tested anywhere (tkinter
 isn't installed on every Python) and so the window code stays about layout.
 """
 
+import datetime
 import json
 import os
 import re
@@ -137,12 +138,15 @@ def serial_fits(text):
 
 
 def check_serials(plan, serials):
-    """Validate the serial number typed for each switch; return ``{id: serial}``."""
+    """Validate the serial numbers typed in; return ``{id: serial}``.
+
+    Serial numbers are optional; blank boxes are left out.
+    """
     clean = {}
     for sw in plan.switches:
         value = (serials.get(sw.id) or "").strip().upper()
         if not value:
-            raise FormError("Enter the serial number for %s." % sw.name)
+            continue
         if len(value) > SERIAL_MAX:
             raise FormError("The serial number for %s is longer than %d characters."
                             % (sw.name, SERIAL_MAX))
@@ -151,6 +155,24 @@ def check_serials(plan, serials):
                             "and dashes." % sw.name)
         clean[sw.id] = value
     return clean
+
+
+DATE_FORMAT = "%Y-%m-%d"
+
+
+def today():
+    return datetime.date.today().strftime(DATE_FORMAT)
+
+
+def check_date(text):
+    """Validate the test date box (YYYY-MM-DD); blank means today."""
+    text = (text or "").strip()
+    if not text:
+        return today()
+    try:
+        return datetime.datetime.strptime(text, DATE_FORMAT).strftime(DATE_FORMAT)
+    except ValueError:
+        raise FormError("Enter the test date as year-month-day, for example %s." % today())
 
 
 # ---- remembered settings (never the password) -----------------------------

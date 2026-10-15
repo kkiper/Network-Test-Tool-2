@@ -322,14 +322,17 @@ def test_progress_and_save(tmp_path):
     messages = []
     plan = load_test(config("switch1.json"))
     report = run_test(plan, {"switch1": OfflineCollector(sample("switch1_faults.log"))},
-                      on_progress=messages.append, serials={"switch1": "FCW2233A1B"})
+                      on_progress=messages.append, serials={"switch1": "FCW2233A1B"},
+                      test_date="2026-10-14")
     assert messages[-1] == "Done: FAIL"
     json_path, txt_path = report.save(str(tmp_path), site="Site 7")
     assert os.path.basename(json_path).startswith("site-7_switch-1_fcw2233a1b_")
     data = json.load(open(json_path))
     assert data["status"] == "fail"
     assert data["switches"][0]["serial_number"] == "FCW2233A1B"
-    assert "  Serial number: FCW2233A1B" in open(txt_path).read()
+    assert data["test_date"] == "2026-10-14"
+    text = open(txt_path).read()
+    assert "  Serial number: FCW2233A1B" in text and "Test date:    2026-10-14" in text
     assert data["counts"]["fail"] == 5
     assert "Fix:" in open(txt_path).read()
 

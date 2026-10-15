@@ -56,6 +56,7 @@ class TestReport:
     config_path: str
     started_at: str
     finished_at: str = None
+    test_date: str = None
     switches: list = field(default_factory=list)
 
     @property
@@ -76,6 +77,7 @@ class TestReport:
         return {
             "test_name": self.test_name, "mode": self.mode,
             "config_path": self.config_path,
+            "test_date": self.test_date,
             "started_at": self.started_at, "finished_at": self.finished_at,
             "status": self.status.value, "counts": self.counts(),
             "switches": [s.to_dict() for s in self.switches],
@@ -85,6 +87,7 @@ class TestReport:
         """A plain-text report a tech can read or print."""
         icon = {"pass": "PASS", "warn": "WARN", "fail": "FAIL", "not_configured": "N/A "}
         lines = ["Network test: %s" % self.test_name,
+                 "Test date:    %s" % (self.test_date or self.started_at[:10]),
                  "Run at:       %s" % self.started_at,
                  "Result:       %s" % self.status.value.upper().replace("_", " "),
                  ""]
@@ -140,7 +143,7 @@ def _now():
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
-def run_test(plan, collectors, on_progress=None, serials=None):
+def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
     """Collect from every switch in ``plan`` and check it.
 
     ``collectors`` maps switch id (``"switch1"``) to an object with a
@@ -149,11 +152,12 @@ def run_test(plan, collectors, on_progress=None, serials=None):
     strings while the test runs. A switch that can't be reached is reported
     as an error on that switch rather than raising. ``serials`` optionally
     maps switch id to the serial number the tech typed in; it is only
-    recorded in the report.
+    recorded in the report, as is ``test_date`` (defaults to today).
     """
     say = on_progress or (lambda msg: None)
     report = TestReport(test_name=plan.name, mode=plan.mode, config_path=plan.path,
                         started_at=_now())
+    report.test_date = test_date or report.started_at[:10]
 
     snapshots = {}
     for sw in plan.switches:

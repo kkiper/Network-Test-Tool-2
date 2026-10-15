@@ -41,6 +41,7 @@ class App(ttk.Frame):
 
         self.site = tk.StringVar(value=self.settings.get("site", ""))
         self.test_path = tk.StringVar()
+        self.test_date = tk.StringVar(value=logic.today())
         self.mode = tk.StringVar(value="live")
         self.username = tk.StringVar(value=self.settings.get("username", ""))
         self.password = tk.StringVar()
@@ -204,12 +205,15 @@ class App(ttk.Frame):
         offline = self.mode.get() == "offline"
         remembered = self.settings.get("addresses", {})
         fits = (self.register(logic.serial_fits), "%P")
-        r = 0
+        ttk.Label(self.conn_frame, text="Test date").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Entry(self.conn_frame, textvariable=self.test_date, width=12).grid(
+            row=0, column=1, sticky="w", padx=4)
+        r = 1
         for sw in self.plan.switches:
             sn = self.serials.get(sw.id)
             if sn is None:
                 sn = self.serials[sw.id] = tk.StringVar()
-            ttk.Label(self.conn_frame, text="%s serial number" % sw.name
+            ttk.Label(self.conn_frame, text="%s serial no. (optional)" % sw.name
                       ).grid(row=r, column=0, sticky="w", pady=2)
             ttk.Entry(self.conn_frame, textvariable=sn, width=12, validate="key",
                       validatecommand=fits).grid(row=r, column=1, sticky="w", padx=4)
@@ -252,6 +256,7 @@ class App(ttk.Frame):
         if self.running or self.plan is None:
             return
         try:
+            test_date = logic.check_date(self.test_date.get())
             serials = logic.check_serials(self.plan, {sid: v.get() for sid, v in
                                                       self.serials.items()})
             collectors = logic.build_collectors(
@@ -272,7 +277,7 @@ class App(ttk.Frame):
 
         def work():
             try:
-                report = run_test(plan, collectors, serials=serials,
+                report = run_test(plan, collectors, serials=serials, test_date=test_date,
                                   on_progress=lambda m: self.events.put(("progress", m)))
                 self.events.put(("done", report))
             except Exception as e:  # never leave the window stuck on "Testing..."
