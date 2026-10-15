@@ -1,6 +1,6 @@
-"""Command-line front end (the GUI will call the same engine).
+"""Command-line front end, and the launcher for the window.
 
-Examples::
+Run with no arguments to open the window. Command-line examples::
 
     # Live, one switch (prompts for the password)
     python -m nettest configs/standard-build/switch1.json --host 192.168.1.1 --user admin
@@ -42,6 +42,12 @@ def _assign(values, plan, what):
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:  # double-clicked or run with no arguments: open the window
+        from .gui import main as gui_main
+        gui_main()
+        return 0
     ap = argparse.ArgumentParser(prog="nettest", description=__doc__.split("\n")[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config", help="switch1.json, switch2.json or combined.json")

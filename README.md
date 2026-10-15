@@ -8,10 +8,36 @@ compare them to a JSON config. Each port gets a pass, warn or fail result.
 Testing happens in three modes: Switch 1 alone, Switch 2 alone, then both
 switches connected together.
 
+## Running a test (the window)
+
+```
+pip install -r requirements.txt
+python -m nettest
+```
+
+On Linux, tkinter may need installing first (`sudo apt install python3-tk`);
+the Windows installer from python.org includes it.
+
+1. **Site**: pick the folder under `configs/` for the site (or Browse to one).
+2. **What are you testing?**: Switch 1, Switch 2, or both connected.
+3. **Connect to the switch**: type the switch IP, username and password, or
+   choose *Saved output file* to check a saved PuTTY log instead.
+4. Press **Run test**.
+
+![Window before a test](docs/gui-start.png)
+
+The banner turns green, yellow or red. Problems are listed first; click any
+port to see what the switch reported and how to fix it. Every run is saved to
+`reports/<site>/` as a `.txt` report (and a `.json` copy), and *Open report*
+opens it. The window remembers the site, test, IPs and username between runs,
+never the password.
+
+![Results of a Switch 1 test with problems](docs/gui-results.png)
+
 ## Running a test (command line)
 
-The GUI is coming next; until then the engine runs from the command line.
-Needs Python 3.9+ and `pip install -r requirements.txt`.
+The same engine runs from the command line. Needs Python 3.9+ and
+`pip install -r requirements.txt`.
 
 ```
 # Live: one switch (asks for the password)
