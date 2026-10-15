@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "test": "jack_test",
-  "name": "Room 1 copper bulkheads (test switch)",
+  "name": "Room 1 copper bulkheads, Switch 1 alone (test switch)",
   "note": "Plug the laptop into the test switch's laptop port. Cable the test switch's control port to 1-J5 and each other test-switch port to its bulkhead jack. Unplug the fiber or leave the test switch's fiber ports listed under also_shut.",
   "switch": {
     "id": "switch1",

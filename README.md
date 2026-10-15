@@ -87,7 +87,7 @@ python -m nettest configs/standard-build/bulkhead-jacks.json \
     --host switch1=192.168.0.20 --host test_switch=192.168.0.60 --user admin
 ```
 
-In the window, pick **Room 1 copper bulkheads (test switch)**, type both IPs,
+In the window, pick **Room 1 copper bulkheads, Switch 1 alone (test switch)**, type both IPs,
 and confirm the prompt. What happens:
 
 1. Every test-switch port listed in the config is turned off (`shutdown`),
@@ -112,6 +112,19 @@ and confirm the prompt. What happens:
 | Fail: half duplex | Damaged pair or bad patch cable |
 | Fail: link with every test-switch port off | The jack is plugged into something other than the test switch |
 | Warn: control jack not tested | No other jack passed, so nothing could carry the connection while 1-J5 was off |
+
+**Rooms connected:** `bulkhead-jacks-connected.json` runs the same test while
+Switch 1 and Switch 2 are joined (1-J5 to 2-J4). 1-J5 then belongs to Switch
+2, so test switch Gi1/1 to 1-J6 becomes the control link instead and is
+tested last. Neither version uses the fiber (the test switch's fiber ports are
+turned off), so the copper jacks can still be tested if the fiber has failed.
+
+```
+Laptop ── test switch spare port
+          test switch Gi1/1 ── 1-J6 ── Switch 1 Gi1/6           control link, tested last
+          test switch Gi1/2-9 ── 1-J7...1-J15 ── Switch 1       turned on one at a time
+          Switch 1 Gi1/4 ── 1-J5 ── 2-J4 ── Switch 2 Gi1/5      room link, not touched
+```
 
 The jack config (`test: "jack_test"`) lists each jack's `switch_port` and
 `test_switch_port`; mark the one carrying the laptop's connection with
@@ -198,7 +211,8 @@ configs/standard-build/
   switch1.json    Switch 1 wiring
   switch2.json    Switch 2 wiring
   combined.json   both switches connected, plus the link between them
-  bulkhead-jacks.json  Room 1 copper bulkhead jacks, via the external test switch
+  bulkhead-jacks.json            Room 1 copper bulkhead jacks via the test switch, Switch 1 alone
+  bulkhead-jacks-connected.json  the same, with Switch 1 and Switch 2 connected
 schema/
   switch-config.schema.json
   combined-config.schema.json

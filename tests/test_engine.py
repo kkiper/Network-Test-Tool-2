@@ -60,7 +60,8 @@ def test_find_tests_lists_singles_then_combined_then_jack_test():
     tests = find_tests(CONFIGS)
     assert [label for label, _ in tests] == ["Switch 1", "Switch 2",
                                             "Switch 1 + Switch 2 connected",
-                                            "Room 1 copper bulkheads (test switch)"]
+                                            "Room 1 copper bulkheads, rooms connected (test switch)",
+                                            "Room 1 copper bulkheads, Switch 1 alone (test switch)"]
 
 
 def test_combined_overrides_bulkhead_ports():

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "test": "jack_test",
+  "name": "Room 1 copper bulkheads, rooms connected (test switch)",
+  "note": "For when Switch 1 and Switch 2 are connected (1-J5 to 2-J4). Doesn't use the fiber. Plug the laptop into a spare port on the test switch. Test switch Gi1/1 to 1-J6 carries the laptop's connection to both switches, so it stays on and is tested last. Cable each other test-switch port to its bulkhead jack.",
+  "switch": {
+    "id": "switch1",
+    "name": "Switch 1"
+  },
+  "test_switch": {
+    "id": "test_switch",
+    "name": "Test switch",
+    "also_shut": [
+      "TenGigabitEthernet1/1",
+      "TenGigabitEthernet1/2"
+    ]
+  },
+  "expect": {
+    "speed_mbps": 1000,
+    "duplex": "full"
+  },
+  "jacks": [
+    {
+      "jack": "1-J6",
+      "switch_port": "GigabitEthernet1/6",
+      "test_switch_port": "GigabitEthernet1/1",
+      "control": true
+    },
+    {
+      "jack": "1-J7",
+      "switch_port": "GigabitEthernet2/1",
+      "test_switch_port": "GigabitEthernet1/2"
+    },
+    {
+      "jack": "1-J8",
+      "switch_port": "GigabitEthernet2/2",
+      "test_switch_port": "GigabitEthernet1/3"
+    },
+    {
+      "jack": "1-J9",
+      "switch_port": "GigabitEthernet2/3",
+      "test_switch_port": "GigabitEthernet1/4"
+    },
+    {
+      "jack": "1-J10",
+      "switch_port": "GigabitEthernet2/4",
+      "test_switch_port": "GigabitEthernet1/5"
+    },
+    {
+      "jack": "1-J11",
+      "switch_port": "GigabitEthernet2/5",
+      "test_switch_port": "GigabitEthernet1/6"
+    },
+    {
+      "jack": "1-J12",
+      "switch_port": "GigabitEthernet2/6",
+      "test_switch_port": "GigabitEthernet1/7"
+    },
+    {
+      "jack": "1-J14",
+      "switch_port": "GigabitEthernet2/7",
+      "test_switch_port": "GigabitEthernet1/8"
+    },
+    {
+      "jack": "1-J15",
+      "switch_port": "GigabitEthernet2/8",
+      "test_switch_port": "GigabitEthernet1/9"
+    }
+  ]
+}

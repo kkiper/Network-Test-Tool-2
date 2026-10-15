@@ -12,7 +12,9 @@ from nettest.interfaces import normalize_interface, short_interface
 from nettest.jacktest import run_jack_test
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CONFIG = os.path.join(os.path.dirname(HERE), "configs", "standard-build", "bulkhead-jacks.json")
+CONFIGS = os.path.join(os.path.dirname(HERE), "configs", "standard-build")
+CONFIG = os.path.join(CONFIGS, "bulkhead-jacks.json")
+CONNECTED = os.path.join(CONFIGS, "bulkhead-jacks-connected.json")
 
 GOOD_WIRING = {   # test-switch port -> Switch 1 port, as cabled in the standard build
     "Gi1/1": "Gi1/6", "Gi1/2": "Gi2/1", "Gi1/3": "Gi2/2", "Gi1/4": "Gi2/3",
@@ -94,8 +96,8 @@ class FakeCollector:
         return FakeSession(self.lab, self.role)
 
 
-def run(lab):
-    plan = load_test(CONFIG)
+def run(lab, config=CONFIG):
+    plan = load_test(config)
     clock = itertools.count()
     report = run_jack_test(plan, {"switch1": FakeCollector(lab, "switch"),
                                   "test_switch": FakeCollector(lab, "test_switch")},
@@ -113,6 +115,18 @@ def test_good_wiring_passes_every_jack_and_leaves_only_control_on():
     assert jacks["1-J7"].target == "Bulkhead 1-J7 (Test switch GI 1/2)"
     assert "Went down and came back up" in jacks["1-J5"].summary
     assert lab.on == {CONTROL}       # fiber and every jack port off, control back on
+
+
+def test_rooms_connected_uses_1j6_as_the_path_and_not_the_fiber():
+    wiring = {k: v for k, v in GOOD_WIRING.items() if k != "Gi1/12"}   # 1-J5 goes to Switch 2
+    lab = FakeLab(wiring)        # the fiber carries nothing (as if it has failed)
+    report, jacks = run(lab, CONNECTED)
+    assert report.status == Status.PASS, report.to_text()
+    assert "1-J5" not in jacks and list(jacks)[-1] == "1-J6" and len(jacks) == 9
+    assert "Went down and came back up" in jacks["1-J6"].summary
+    assert lab.on == {"GigabitEthernet1/1"}   # fiber off, only the 1-J6 path left on
+    assert "test switch GigabitEthernet1/1 is cabled to 1-J6" in \
+        logic.jack_test_warning(load_test(CONNECTED))
 
 
 def test_swapped_cables_name_both_jacks():
