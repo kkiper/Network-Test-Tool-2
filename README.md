@@ -156,7 +156,7 @@ Each port:
 | Field | Meaning |
 |---|---|
 | `interface` | Full IOS name, e.g. `GigabitEthernet1/3`, `TenGigabitEthernet1/1`. |
-| `diagram_label` | The label exactly as drawn (`GI 1/3`, `GE 1/9`, `TE1/1`) so techs can match it to the drawing. |
+| `diagram_label` | How the port is shown to the tech (`GI 1/3`, `TE 1/1`). |
 | `media` | `copper` or `fiber`. |
 | `connects_to` | `device`, `port` (or `null` if the drawing shows none), and `kind`: `device`, `bulkhead` (passive patch point) or `switch`. |
 | `optic` | Fiber only: SFP part number, type, wavelength, multimode/singlemode. |

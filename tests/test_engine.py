@@ -104,9 +104,9 @@ def test_switch1_faults_sample():
     assert ports["GI 1/9"].status == Status.FAIL
     assert "err-disabled" in ports["GI 1/9"].summary
     assert ports["GI 1/8"].status == Status.PASS
-    assert ports["TE1/1"].status == Status.FAIL
-    assert "-14.6 dBm" in ports["TE1/1"].summary
-    assert ports["TE1/1"].observed["rx_dbm"] == -14.6
+    assert ports["TE 1/1"].status == Status.FAIL
+    assert "-14.6 dBm" in ports["TE 1/1"].summary
+    assert ports["TE 1/1"].observed["rx_dbm"] == -14.6
     assert ports["TE 1/2"].status == Status.FAIL
     assert "no SFP" in ports["TE 1/2"].summary
     stray = ports["GI 1/10"]
@@ -136,7 +136,7 @@ def test_light_level_warning_band(tmp_path):
     # -10.5 dBm is between the SFP's low warning (-9.9) and low alarm (-13.9).
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -10.5 -")])
-    te = by_label(run_single(config("switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(config("switch1.json"), path))["TE 1/1"]
     assert te.status == Status.WARN
     assert "warning level" in te.summary
 
@@ -152,12 +152,12 @@ def test_light_levels_fall_back_to_config_range(tmp_path):
     # -10.5 is a module warning but inside the datasheet range (-11.1..0.5).
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -10.5 -")])
-    te = by_label(run_single(str(site / "switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(str(site / "switch1.json"), path))["TE 1/1"]
     assert te.status == Status.PASS
     # -11.5 is outside the datasheet range.
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -11.5 -")], name="b.log")
-    te = by_label(run_single(str(site / "switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(str(site / "switch1.json"), path))["TE 1/1"]
     assert te.status == Status.FAIL
     assert "datasheet range" in te.summary
 
@@ -165,7 +165,7 @@ def test_light_levels_fall_back_to_config_range(tmp_path):
 def test_no_light_when_link_up(tmp_path):
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -40.0 --")])
-    te = by_label(run_single(config("switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(config("switch1.json"), path))["TE 1/1"]
     assert te.status == Status.FAIL
     assert "no light" in te.summary
 
@@ -241,7 +241,7 @@ def test_combined_interconnect_down(tmp_path):
     sw2 = write_variant(tmp_path, sample("combined_switch2.log"), [(
         "Gi1/5        Bulkhead 2-J4      connected    20         a-full a-1000",
         "Gi1/5        Bulkhead 2-J4      notconnect   20           auto   auto")])
-    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GE 1/5"]
+    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GI 1/5"]
     assert ge15.status == Status.FAIL
     assert "bulkheads 1-J5 and 2-J4" in ge15.findings[0].action
 
@@ -251,7 +251,7 @@ def test_combined_no_cdp_neighbor(tmp_path):
         "Device ID: SW1-ESS3300", "Device ID: SW1-ESS3300-gone")])
     sw2 = write_variant(tmp_path, sw2, [(
         "Interface: GigabitEthernet1/5,", "Interface: GigabitEthernet1/7,")], name="b.log")
-    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GE 1/5"]
+    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GI 1/5"]
     assert ge15.status == Status.FAIL
     assert "can't see Switch 1" in ge15.summary
 

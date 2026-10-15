@@ -21,7 +21,7 @@ def test_list_sites_finds_standard_build():
 
 def test_sorted_rows_puts_problems_first_in_config_order():
     rows = logic.sorted_rows(faults_report())
-    assert [r.diagram_label for r in rows[:5]] == ["GI 1/5", "GI 1/9", "TE1/1", "TE 1/2", "GI 1/10"]
+    assert [r.diagram_label for r in rows[:5]] == ["GI 1/5", "GI 1/9", "TE 1/1", "TE 1/2", "GI 1/10"]
     assert [r.status for r in rows[:5]] == [Status.FAIL] * 4 + [Status.WARN]
     assert all(r.status == Status.PASS for r in rows[5:])
 
@@ -32,7 +32,7 @@ def test_details_text_includes_fix_and_what_was_read():
     assert "FAIL  GI 1/5 has no link." in text
     assert "How to fix: Check the cable from GI 1/5 to Server Port 2" in text
     assert "switch says 'notconnect'" in text
-    assert "light Tx -2.4 / Rx -14.6 dBm" in logic.details_text(rows["TE1/1"])
+    assert "light Tx -2.4 / Rx -14.6 dBm" in logic.details_text(rows["TE 1/1"])
 
 
 def test_counts_text():

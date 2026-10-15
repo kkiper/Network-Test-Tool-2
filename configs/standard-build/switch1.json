@@ -82,7 +82,7 @@
     },
     {
       "interface": "TenGigabitEthernet1/1",
-      "diagram_label": "TE1/1",
+      "diagram_label": "TE 1/1",
       "media": "fiber",
       "connects_to": {
         "device": "Fiber Bulkhead (4-channel multimode)",
