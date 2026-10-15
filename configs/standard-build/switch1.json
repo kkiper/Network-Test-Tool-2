@@ -13,6 +13,9 @@
       }
     }
   },
+  "ip_subnets": [
+    "192.168.0.0/24"
+  ],
   "unlisted_ports": "warn_if_up",
   "ports": [
     {

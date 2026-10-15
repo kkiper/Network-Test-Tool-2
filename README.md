@@ -94,6 +94,7 @@ A missing command only turns off the checks that need it.
 | MAC (`mac_addresses`) | Expected MAC seen on the port | MAC table unavailable | MAC missing, or seen on another port (swapped cables) |
 | SFP | Present and the expected type | Different optic type | No SFP installed |
 | Light levels | Within range | Between the SFP's warning and alarm levels | Past the SFP's alarm level (or outside the config range when the SFP has no thresholds), or no light at all |
+| IP subnet (`ip_subnets`) | Device's IP is in the subnet | | Device's IP is outside the subnet (devices with no IP seen aren't checked) |
 | Unlisted ports (internal ports like AppGigabitEthernet are skipped) | | Link up and `unlisted_ports: warn_if_up` | Link up and `unlisted_ports: fail_if_up` |
 
 Receive light is only checked when the link is up; transmit light is checked
@@ -153,6 +154,7 @@ Copy `configs/standard-build/` to a new folder if a site is wired differently.
 | `schema_version` | Always `1` for now. |
 | `switch` | `id` (used by `combined.json`), display `name`, `model`. |
 | `defaults.copper.expect` | What every copper port should show unless the port overrides it (link up, full duplex). Speed isn't checked unless a `speed_mbps` is added. |
+| `ip_subnets` | Subnets device IPs must be in, e.g. `["192.168.0.0/24"]`. A device whose IP (from the switch's ARP/device-tracking tables) is outside fails. Ports can override it in `expect`. Leave it out to turn the check off. |
 | `unlisted_ports` | What to do with ports not in the list: `ignore`, `warn_if_up` or `fail_if_up`. |
 | `ports[]` | One entry per cabled port. |
 

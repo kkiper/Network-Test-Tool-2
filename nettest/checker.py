@@ -6,6 +6,7 @@ is wrong) and ``action`` (what the tech should do about it), written for
 someone who has never seen IOS output.
 """
 
+import ipaddress
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
@@ -184,6 +185,7 @@ class SwitchChecker:
             self._check_speed_duplex(result, port, row)
             self._check_neighbor(result, port)
             self._check_macs(result, port)
+            self._check_subnet(result, port)
         if port.media == "fiber" and not unused:
             self._check_optic(result, port, row, state)
 
@@ -380,6 +382,29 @@ class SwitchChecker:
                             "%s has link, but the expected device (%s) isn't on it." % (label, mac),
                             "A different device is plugged in, or %s hasn't sent any traffic "
                             "yet. Check the cable goes to %s." % (port.target, port.target)))
+
+    def _check_subnet(self, result, port):
+        subnets = port.expect.get("ip_subnets")
+        if not subnets or port.connects_to.get("kind") == "switch":
+            return
+        ips = result.observed.get("ips") or []
+        if not ips:
+            return  # the switch hasn't seen an IP for this device; nothing to check
+        nets = [ipaddress.ip_network(s, strict=False) for s in subnets]
+        label = port.diagram_label
+        wanted = ", ".join(subnets)
+        outside = [ip for ip in ips if not any(ipaddress.ip_address(ip) in n for n in nets)]
+        if not outside:
+            result.findings.append(Finding(
+                Status.PASS, "subnet", "%s's device IP %s is in the right subnet (%s)."
+                % (label, ", ".join(ips), wanted)))
+            return
+        result.findings.append(Finding(
+            Status.FAIL, "subnet",
+            "%s's device has IP %s, which isn't in this site's subnet (%s)."
+            % (label, ", ".join(outside), wanted),
+            "Set %s's IP address to one in %s, or check that the right device is "
+            "plugged into %s." % (port.target, wanted, label)))
 
     def _check_optic(self, result, port, row, state):
         add = result.findings.append

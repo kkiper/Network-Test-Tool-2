@@ -150,6 +150,6 @@ def test_parse_device_tracking():
     path = os.path.join(os.path.dirname(__file__), "samples", "switch2_good",
                         "show_device_tracking_database.txt")
     dt = parsers.parse_device_tracking(open(path).read())
-    assert dt["GigabitEthernet1/3"] == ["10.20.0.30"]
-    assert dt["GigabitEthernet1/6"] == ["10.20.0.50"]
+    assert dt["GigabitEthernet1/3"] == ["192.168.0.11"]
+    assert dt["GigabitEthernet1/6"] == ["192.168.0.16"]
     assert len(dt) == 4

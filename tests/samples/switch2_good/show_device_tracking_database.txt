@@ -7,7 +7,7 @@ Preflevel flags (prlvl):
 
 
     Network Layer Address               Link Layer Address Interface        vlan prlvl  age   state     Time left
-ARP 10.20.0.30                              0004.f2aa.0101     Gi1/3            20  0005   12s   REACHABLE  290 s
-ARP 10.20.0.11                              00a0.4502.0009     Gi1/9            20  0005   40s   REACHABLE  262 s
-ARP 10.20.0.12                              00a0.4502.0010     Gi1/10           20  0005   41s   REACHABLE  261 s
-DH4 10.20.0.50                              0090.e8bb.0606     Gi1/6            20  0025   2mn   REACHABLE  180 s
+ARP 192.168.0.11                              0004.f2aa.0101     Gi1/3            20  0005   12s   REACHABLE  290 s
+ARP 192.168.0.12                              00a0.4502.0009     Gi1/9            20  0005   40s   REACHABLE  262 s
+ARP 192.168.0.13                              00a0.4502.0010     Gi1/10           20  0005   41s   REACHABLE  261 s
+DH4 192.168.0.16                              0090.e8bb.0606     Gi1/6            20  0025   2mn   REACHABLE  180 s
