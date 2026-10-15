@@ -89,7 +89,7 @@ A missing command only turns off the checks that need it.
 | MAC (`mac_addresses`) | Expected MAC seen on the port | MAC table unavailable | MAC missing, or seen on another port (swapped cables) |
 | SFP | Present and the expected type | Different optic type | No SFP installed |
 | Light levels | Within range | Between the SFP's warning and alarm levels | Past the SFP's alarm level (or outside the config range when the SFP has no thresholds), or no light at all |
-| Unlisted ports | | Link up and `unlisted_ports: warn_if_up` | Link up and `unlisted_ports: fail_if_up` |
+| Unlisted ports (internal ports like AppGigabitEthernet are skipped) | | Link up and `unlisted_ports: warn_if_up` | Link up and `unlisted_ports: fail_if_up` |
 
 Receive light is only checked when the link is up; transmit light is checked
 whenever an SFP is installed.

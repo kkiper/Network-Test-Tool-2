@@ -90,6 +90,10 @@ class PortResult:
 _UP = {"connected"}
 _ABSENT = {"sfpabsent", "xcvrabsen"}
 
+# Ports inside the switch that are always up and never cabled, e.g. the
+# ESS 3300's app-hosting port (Ap1/1). Never reported as unlisted.
+INTERNAL_PORT_PREFIXES = ("AppGigabitEthernet",)
+
 NO_LIGHT_DBM = -30.0   # at or below this, treat Rx as "no light at all"
 
 
@@ -474,7 +478,8 @@ class SwitchChecker:
         listed = {p.interface for p in self.plan.ports}
         results = []
         for iface, row in self.snap.status.items():
-            if iface in listed or _link_state(row) != "up":
+            if iface in listed or _link_state(row) != "up" \
+                    or iface.startswith(INTERNAL_PORT_PREFIXES):
                 continue
             label = drawing_label(iface)
             status = Status.FAIL if policy == "fail_if_up" else Status.WARN

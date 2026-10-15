@@ -111,6 +111,8 @@ def test_switch1_faults_sample():
     assert "no SFP" in ports["TE 1/2"].summary
     stray = ports["GI 1/10"]
     assert not stray.listed and stray.status == Status.WARN
+    # The internal app-hosting port is always up and is never reported.
+    assert [r.diagram_label for r in report.ports() if not r.listed] == ["GI 1/10"]
 
 
 def test_switch2_folder_sample_passes_and_notes_lldp_off():

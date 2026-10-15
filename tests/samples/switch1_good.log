@@ -28,6 +28,7 @@ Gi2/13                          notconnect   1            auto   auto 10/100/100
 Gi2/14                          notconnect   1            auto   auto 10/100/1000BaseTX
 Gi2/15                          notconnect   1            auto   auto 10/100/1000BaseTX
 Gi2/16                          notconnect   1            auto   auto 10/100/1000BaseTX
+Ap1/1                           connected    trunk        full   1000 App-hosting port
 SW1-ESS3300#show cdp neighbors detail
 Total cdp entries displayed : 0
 SW1-ESS3300#show lldp neighbors detail
