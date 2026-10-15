@@ -8,6 +8,8 @@ import pytest
 
 tk = pytest.importorskip("tkinter")
 
+from nettest.gui_logic import EXTRA_LABELS as logic_labels
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -59,3 +61,21 @@ def test_serial_box_holds_at_most_ten_characters(app):
     boxes[0].insert(0, "ABCDEFGHIJ")
     boxes[0].insert("end", "K")        # an 11th character is refused
     assert boxes[0].get() == "ABCDEFGHIJ"
+
+
+def test_connected_test_offers_copper_and_fiber_options(app):
+    paths = {os.path.basename(p): p for _, p in app.tests}
+    app.test_path.set(paths["switch1.json"])
+    app._build_connection()
+    assert not app.extras_frame.winfo_children()      # single-switch test: no options
+    app.test_path.set(paths["combined.json"])
+    app._build_connection()
+    boxes = [w.cget("text") for w in app.extras_frame.winfo_children()
+             if isinstance(w, tk.ttk.Checkbutton)]
+    assert boxes == [logic_labels["copper"], logic_labels["fiber"]]
+    assert "test_switch" in app.addresses
+    app.extra_vars["copper"].set(True)
+    assert app._extras() == ("copper",)
+    app.mode.set("offline")
+    app._build_connection()
+    assert not app.extras_frame.winfo_children() and app._extras() == ()

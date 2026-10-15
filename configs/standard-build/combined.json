@@ -34,5 +34,84 @@
         "cdp_neighbor": true
       }
     }
-  ]
+  ],
+  "test_switch": {
+    "id": "test_switch",
+    "name": "Test switch",
+    "note": "Plug the laptop into a spare port on the test switch. Test switch Gi1/1 to bulkhead 1-J6 is the laptop's path to the switches during the copper test.",
+    "copper_test": {
+      "switch": "switch1",
+      "expect": {
+        "speed_mbps": 1000,
+        "duplex": "full"
+      },
+      "jacks": [
+        {
+          "jack": "1-J6",
+          "switch_port": "GigabitEthernet1/6",
+          "test_switch_port": "GigabitEthernet1/1",
+          "control": true
+        },
+        {
+          "jack": "1-J7",
+          "switch_port": "GigabitEthernet2/1",
+          "test_switch_port": "GigabitEthernet1/2"
+        },
+        {
+          "jack": "1-J8",
+          "switch_port": "GigabitEthernet2/2",
+          "test_switch_port": "GigabitEthernet1/3"
+        },
+        {
+          "jack": "1-J9",
+          "switch_port": "GigabitEthernet2/3",
+          "test_switch_port": "GigabitEthernet1/4"
+        },
+        {
+          "jack": "1-J10",
+          "switch_port": "GigabitEthernet2/4",
+          "test_switch_port": "GigabitEthernet1/5"
+        },
+        {
+          "jack": "1-J11",
+          "switch_port": "GigabitEthernet2/5",
+          "test_switch_port": "GigabitEthernet1/6"
+        },
+        {
+          "jack": "1-J12",
+          "switch_port": "GigabitEthernet2/6",
+          "test_switch_port": "GigabitEthernet1/7"
+        },
+        {
+          "jack": "1-J14",
+          "switch_port": "GigabitEthernet2/7",
+          "test_switch_port": "GigabitEthernet1/8"
+        },
+        {
+          "jack": "1-J15",
+          "switch_port": "GigabitEthernet2/8",
+          "test_switch_port": "GigabitEthernet1/9"
+        }
+      ]
+    },
+    "fiber_test": {
+      "switch": "switch1",
+      "expect": {
+        "speed_mbps": 10000,
+        "etherchannel": true
+      },
+      "links": [
+        {
+          "bulkhead": "P1/S1",
+          "switch_port": "TenGigabitEthernet1/1",
+          "test_switch_port": "TenGigabitEthernet1/1"
+        },
+        {
+          "bulkhead": "P2/S2",
+          "switch_port": "TenGigabitEthernet1/2",
+          "test_switch_port": "TenGigabitEthernet1/2"
+        }
+      ]
+    }
+  }
 }

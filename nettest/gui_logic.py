@@ -100,17 +100,51 @@ def details_text(result):
     return "\n".join(lines)
 
 
+EXTRA_LABELS = {
+    "copper": "Copper test (test switch turns each bulkhead port on and off)",
+    "fiber": "Fiber test (fiber to the test switch, one link at a time)",
+}
+
+
+def test_switch_warning(plan, extras):
+    """The confirmation shown before the copper/fiber tests change test-switch ports."""
+    ts = plan.test_switch
+    names = " and ".join(n for n in ("copper", "fiber") if n in extras)
+    lines = ["The %s test%s log in to %s and turn its ports off and on. The changes "
+             "aren't saved, and every port is turned back on at the end."
+             % (names, "s" if len(extras) > 1 else "", ts.name), "",
+             "Before you start:",
+             "  - the laptop is plugged into a spare port on %s" % ts.name]
+    control = ts.copper.control if ts.copper else None
+    if control:
+        lines.append("  - %s %s is cabled to %s (it carries the laptop's connection)"
+                     % (ts.name, control.test_switch_port, control.jack))
+    if "copper" in extras:
+        lines.append("  - each other bulkhead jack is cabled to its %s port" % ts.name)
+    if "fiber" in extras:
+        lines.append("  - both fiber pairs are cabled from the fiber bulkhead to %s" % ts.name)
+    lines += ["", "Run the test?"]
+    return "\n".join(lines)
+
+
 class FormError(Exception):
     """Something the tech needs to fill in before the test can run."""
 
 
-def build_collectors(plan, offline, addresses, username, password, enable=None):
+def build_collectors(plan, offline, addresses, username, password, enable=None, extras=()):
     """Turn what's typed in the form into collectors for :func:`run_test`.
 
     ``addresses`` maps switch id to an IP (live) or a file/folder (offline).
+    ``extras`` are the ticked test-switch tests; they add the test switch.
     """
+    if offline and extras:
+        raise FormError("The copper and fiber tests turn test-switch ports on and off, so "
+                        "they need live switches. Choose Live switch.")
+    switches = list(plan.switches)
+    if extras:
+        switches.append(plan.test_switch)
     collectors = {}
-    for sw in plan.switches:
+    for sw in switches:
         value = (addresses.get(sw.id) or "").strip()
         if offline:
             if not value:

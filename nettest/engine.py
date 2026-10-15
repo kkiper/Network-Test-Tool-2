@@ -143,7 +143,7 @@ def _now():
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
-def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
+def run_test(plan, collectors, on_progress=None, serials=None, test_date=None, extras=()):
     """Collect from every switch in ``plan`` and check it.
 
     ``collectors`` maps switch id (``"switch1"``) to an object with a
@@ -153,6 +153,11 @@ def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
     as an error on that switch rather than raising. ``serials`` optionally
     maps switch id to the serial number the tech typed in; it is only
     recorded in the report, as is ``test_date`` (defaults to today).
+
+    ``extras`` picks optional tests that use the plan's external test switch:
+    ``"copper"`` and/or ``"fiber"`` (see :mod:`nettest.testswitch`). They run
+    after the normal checks, turn test-switch ports off and on, and need a
+    live collector for the test switch under its id in ``collectors``.
     """
     say = on_progress or (lambda msg: None)
     report = TestReport(test_name=plan.name, mode=plan.mode, config_path=plan.path,
@@ -188,6 +193,10 @@ def run_test(plan, collectors, on_progress=None, serials=None, test_date=None):
             sr.results = SwitchChecker(sw, snapshots[sw.id], hostnames).run()
         except ValueError as e:
             sr.error = str(e)
+
+    if extras:
+        from .testswitch import run_test_switch_tests
+        run_test_switch_tests(plan, collectors, extras, report, on_progress=say)
 
     report.finished_at = _now()
     say("Done: %s" % report.status.value.upper())

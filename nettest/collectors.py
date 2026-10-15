@@ -125,7 +125,7 @@ class SshCollector:
     def describe(self):
         return "ssh %s" % self.host
 
-    def collect(self, on_progress=None):
+    def _connect(self, say):
         try:
             from netmiko import ConnectHandler
             from netmiko.exceptions import (NetmikoAuthenticationException,
@@ -134,7 +134,6 @@ class SshCollector:
             raise CollectionError("The netmiko package is not installed, so the tool "
                                   "can't talk to switches. Run: pip install netmiko")
 
-        say = on_progress or (lambda msg: None)
         say("Connecting to %s..." % self.host)
         try:
             conn = ConnectHandler(device_type=self.device_type, host=self.host,
@@ -150,10 +149,18 @@ class SshCollector:
                                   % self.host)
         except Exception as e:  # paramiko/socket errors come in many shapes
             raise CollectionError("Could not connect to %s: %s" % (self.host, e))
-
         try:
             if self.secret and not conn.check_enable_mode():
                 conn.enable()
+        except Exception:
+            conn.disconnect()
+            raise
+        return conn
+
+    def collect(self, on_progress=None):
+        say = on_progress or (lambda msg: None)
+        conn = self._connect(say)
+        try:
             hostname = conn.find_prompt().rstrip("#>").strip() or None
             outputs = {}
             for cmd in list(COMMANDS) + [HOSTNAME_COMMAND]:
@@ -162,6 +169,35 @@ class SshCollector:
         finally:
             conn.disconnect()
         return build_snapshot(self.describe(), outputs, hostname=hostname)
+
+    def open(self, on_progress=None):
+        """Log in and keep the connection open (for tests that change ports)."""
+        return SshSession(self._connect(on_progress or (lambda msg: None)), self.host)
+
+
+class SshSession:
+    """An open SSH login to one switch. Close it when done."""
+
+    def __init__(self, conn, host):
+        self.conn = conn
+        self.host = host
+
+    def run(self, command):
+        """Run a show command and return its output."""
+        return self.conn.send_command(command, read_timeout=60)
+
+    def hostname(self):
+        return self.conn.find_prompt().rstrip("#>").strip() or None
+
+    def configure(self, lines):
+        """Send config-mode lines (``interface X``, ``shutdown``...). Not saved."""
+        return self.conn.send_config_set(lines, read_timeout=60)
+
+    def close(self):
+        try:
+            self.conn.disconnect()
+        except Exception:
+            pass
 
 
 # --------------------------------------------------------------------------

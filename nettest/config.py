@@ -69,12 +69,81 @@ class TestPlan:
     name: str
     path: str
     switches: list     # [SwitchPlan]
+    test_switch: object = None   # TestSwitchPlan, combined mode only
+
+    @property
+    def extras(self):
+        """Optional test-switch tests this plan offers: subset of ("copper", "fiber")."""
+        ts = self.test_switch
+        if ts is None:
+            return ()
+        return tuple(n for n, part in (("copper", ts.copper), ("fiber", ts.fiber)) if part)
 
     def switch(self, switch_id):
         for s in self.switches:
             if s.id == switch_id:
                 return s
         raise KeyError(switch_id)
+
+
+@dataclass
+class Jack:
+    """One bulkhead jack in the copper test: which switch port and test-switch port it joins."""
+
+    jack: str
+    switch_port: str
+    test_switch_port: str
+    control: bool = False
+    note: str = None
+
+
+@dataclass
+class CopperTest:
+    """Copper test: the test switch turns its bulkhead ports on one at a time."""
+
+    switch_id: str
+    jacks: list                 # [Jack], control jack last
+    speed_mbps: int = 1000
+    duplex: str = "full"
+
+    @property
+    def control(self):
+        return next((j for j in self.jacks if j.control), None)
+
+
+@dataclass
+class FiberLink:
+    switch_port: str
+    test_switch_port: str
+    bulkhead: str = None
+
+
+@dataclass
+class FiberTest:
+    """Fiber test: links from the switch to the test switch, bundled in an EtherChannel."""
+
+    switch_id: str
+    links: list                 # [FiberLink]
+    speed_mbps: int = 10000
+    etherchannel: bool = True
+
+
+@dataclass
+class TestSwitchPlan:
+    """The external test switch the copper and fiber tests log in to."""
+
+    id: str
+    name: str
+    copper: CopperTest = None
+    fiber: FiberTest = None
+    link_timeout: float = 15
+    note: str = None
+
+    def all_ports(self):
+        """Every test-switch port the tests turn off and on."""
+        ports = [j.test_switch_port for j in (self.copper.jacks if self.copper else [])]
+        ports += [lk.test_switch_port for lk in (self.fiber.links if self.fiber else [])]
+        return ports
 
 
 def _read_json(path):
@@ -212,8 +281,64 @@ def _load_combined(path, data):
                                 "kind": "switch",
                                 "via": port.connects_to}
 
+    test_switch = None
+    if data.get("test_switch"):
+        try:
+            test_switch = _load_test_switch(data["test_switch"], switches,
+                                            os.path.basename(path))
+        except (KeyError, TypeError) as e:
+            raise ConfigError("%s is missing a required test switch setting: %s"
+                              % (os.path.basename(path), e))
     return TestPlan(mode="combined", name=data.get("name", "Combined"), path=path,
-                    switches=[switches[e["id"]] for e in data["switches"]])
+                    switches=[switches[e["id"]] for e in data["switches"]],
+                    test_switch=test_switch)
+
+
+def _load_test_switch(data, switches, fname):
+    """Build a :class:`TestSwitchPlan` from combined.json's ``test_switch`` section."""
+    def known(sid):
+        if sid not in switches:
+            raise ConfigError("%s: the test switch section refers to unknown switch %r"
+                              % (fname, sid))
+        return sid
+
+    def no_dupes(ports, what):
+        dupes = sorted({p for p in ports if ports.count(p) > 1})
+        if dupes:
+            raise ConfigError("%s: the test switch section uses %s for more than one %s."
+                              % (fname, dupes[0], what))
+
+    ts = TestSwitchPlan(id=data["id"], name=data["name"], note=data.get("note"),
+                        link_timeout=data.get("link_timeout_seconds", 15))
+    if ts.id in switches:
+        raise ConfigError("%s: the test switch has the same id as %s." % (fname, ts.id))
+    cu = data.get("copper_test")
+    if cu:
+        jacks = [Jack(jack=j["jack"], switch_port=normalize_interface(j["switch_port"]),
+                      test_switch_port=normalize_interface(j["test_switch_port"]),
+                      control=bool(j.get("control")), note=j.get("note"))
+                 for j in cu["jacks"]]
+        if sum(j.control for j in jacks) > 1:
+            raise ConfigError("%s marks more than one jack as the control link." % fname)
+        no_dupes([j.switch_port for j in jacks], "jack")
+        jacks.sort(key=lambda j: j.control)   # control link is tested last
+        expect = cu.get("expect", {})
+        ts.copper = CopperTest(switch_id=known(cu["switch"]), jacks=jacks,
+                               speed_mbps=expect.get("speed_mbps", 1000),
+                               duplex=expect.get("duplex", "full"))
+    fi = data.get("fiber_test")
+    if fi:
+        expect = fi.get("expect", {})
+        ts.fiber = FiberTest(
+            switch_id=known(fi["switch"]),
+            links=[FiberLink(switch_port=normalize_interface(lk["switch_port"]),
+                             test_switch_port=normalize_interface(lk["test_switch_port"]),
+                             bulkhead=lk.get("bulkhead")) for lk in fi["links"]],
+            speed_mbps=expect.get("speed_mbps", 10000),
+            etherchannel=expect.get("etherchannel", True))
+        no_dupes([lk.switch_port for lk in ts.fiber.links], "fiber link")
+    no_dupes(ts.all_ports(), "link")
+    return ts
 
 
 def find_tests(site_dir):

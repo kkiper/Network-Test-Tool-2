@@ -290,3 +290,41 @@ def parse_device_tracking(text):
         if m.group(1) not in ips:
             ips.append(m.group(1))
     return result
+
+
+# --------------------------------------------------------------------------
+# show etherchannel summary
+# --------------------------------------------------------------------------
+
+_CHANNEL = re.compile(r"\b(Po\d+)\(([A-Za-z]*)\)")
+_MEMBER = re.compile(r"\b((?:Gi|Te|Tw|Fa)[A-Za-z]*\d+(?:/\d+)+)\(([A-Za-z]+)\)")
+
+
+def parse_etherchannel_summary(text):
+    """Parse ``show etherchannel summary``.
+
+    Returns ``{member_interface: {"channel", "channel_flags", "flag"}}``, e.g.
+    ``{"TenGigabitEthernet1/1": {"channel": "Port-channel1", "channel_flags": "SU",
+    "flag": "P"}}``. Member flags: P bundled, I stand-alone (no LACP from the
+    far end), s suspended, D down, H hot-standby.
+    """
+    result = {}
+    channel = flags = None
+    for line in (text or "").splitlines():
+        m = _CHANNEL.search(line)
+        if m:
+            channel, flags = normalize_interface(m.group(1)), m.group(2)
+        elif not re.match(r"^\s+\S", line):
+            channel = None   # members only continue on indented lines
+        if channel is None:
+            continue
+        for port, flag in _MEMBER.findall(line):
+            result[normalize_interface(port)] = {"channel": channel, "channel_flags": flags,
+                                                 "flag": flag}
+    return result
+
+
+def parse_ping_success(text):
+    """``Success rate is 100 percent (20/20)`` -> 100, or None if not found."""
+    m = re.search(r"Success rate is (\d+) percent", text or "")
+    return int(m.group(1)) if m else None

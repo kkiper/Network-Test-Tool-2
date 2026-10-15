@@ -48,6 +48,8 @@ class App(ttk.Frame):
         self.enable = tk.StringVar()
         self.addresses = {}        # switch id -> StringVar
         self.serials = {}          # switch id -> StringVar, never saved to settings
+        remembered = self.settings.get("extras", [])
+        self.extra_vars = {e: tk.BooleanVar(value=e in remembered) for e in ("copper", "fiber")}
         self.progress = tk.StringVar(value="Fill in the left side, then press Run test.")
         self.saved = tk.StringVar()
 
@@ -90,6 +92,10 @@ class App(ttk.Frame):
         self.conn_frame = ttk.Frame(left)
         self.conn_frame.grid(sticky="ew", pady=(0, 12))
         self.conn_frame.columnconfigure(1, weight=1)
+        # Copper and fiber tests through the test switch (connected test only).
+        self.extras_frame = ttk.Frame(left)
+        self.extras_frame.grid(sticky="ew", pady=(0, 12))
+        self.extras_frame.columnconfigure(1, weight=1)
 
         self.run_button = ttk.Button(left, text="Run test", style="Run.TButton",
                                      command=self._run)
@@ -194,7 +200,8 @@ class App(ttk.Frame):
         self._build_connection()
 
     def _build_connection(self):
-        for w in self.conn_frame.winfo_children() + self.unit_frame.winfo_children():
+        for w in (self.conn_frame.winfo_children() + self.unit_frame.winfo_children()
+                  + self.extras_frame.winfo_children()):
             w.destroy()
         self.plan = None
         if not self.test_path.get():
@@ -245,6 +252,34 @@ class App(ttk.Frame):
                 r += 1
             ttk.Label(self.conn_frame, text="(enable password only if the switch asks for one)",
                       foreground="#777").grid(row=r, column=0, columnspan=2, sticky="w")
+        if self.plan.extras and not offline:
+            self._build_extras(remembered)
+
+    def _build_extras(self, remembered):
+        ts = self.plan.test_switch
+        ttk.Label(self.extras_frame, text="4. Test switch tests (optional)",
+                  style="Step.TLabel").grid(row=0, column=0, columnspan=2, sticky="w")
+        r = 1
+        for e in self.plan.extras:
+            ttk.Checkbutton(self.extras_frame, text=logic.EXTRA_LABELS[e],
+                            variable=self.extra_vars[e]).grid(
+                row=r, column=0, columnspan=2, sticky="w", pady=1)
+            r += 1
+        var = self.addresses.get(ts.id)
+        if var is None:
+            var = self.addresses[ts.id] = tk.StringVar(value=remembered.get(ts.id, ""))
+        ttk.Label(self.extras_frame, text="%s IP" % ts.name).grid(
+            row=r, column=0, sticky="w", pady=2)
+        ttk.Entry(self.extras_frame, textvariable=var, width=22).grid(
+            row=r, column=1, sticky="ew", padx=4)
+        ttk.Label(self.extras_frame, text="(same username and password as the switches)",
+                  foreground="#777").grid(row=r + 1, column=0, columnspan=2, sticky="w")
+
+    def _extras(self):
+        """The ticked test-switch tests, if this test and mode offer them."""
+        if self.plan is None or self.mode.get() != "live":
+            return ()
+        return tuple(e for e in self.plan.extras if self.extra_vars[e].get())
 
     def _browse_file(self, var):
         path = filedialog.askopenfilename(title="Choose the self test file",
@@ -258,6 +293,7 @@ class App(ttk.Frame):
     def _run(self):
         if self.running or self.plan is None:
             return
+        extras = self._extras()
         try:
             test_date = logic.check_date(self.test_date.get())
             serials = logic.check_serials(self.plan, {sid: v.get() for sid, v in
@@ -265,9 +301,13 @@ class App(ttk.Frame):
             collectors = logic.build_collectors(
                 self.plan, self.mode.get() == "offline",
                 {sid: v.get() for sid, v in self.addresses.items()},
-                self.username.get().strip(), self.password.get(), self.enable.get())
+                self.username.get().strip(), self.password.get(), self.enable.get(),
+                extras=extras)
         except logic.FormError as e:
             messagebox.showwarning("Before you run the test", str(e))
+            return
+        if extras and not messagebox.askokcancel(
+                "Test switch tests", logic.test_switch_warning(self.plan, extras)):
             return
 
         self._remember()
@@ -281,6 +321,7 @@ class App(ttk.Frame):
         def work():
             try:
                 report = run_test(plan, collectors, serials=serials, test_date=test_date,
+                                  extras=extras,
                                   on_progress=lambda m: self.events.put(("progress", m)))
                 self.events.put(("done", report))
             except Exception as e:  # never leave the window stuck on "Testing..."
@@ -389,6 +430,8 @@ class App(ttk.Frame):
         if self.mode.get() == "live":
             self.settings["addresses"] = {sid: v.get().strip()
                                           for sid, v in self.addresses.items()}
+            if self.plan is not None and self.plan.extras:
+                self.settings["extras"] = list(self._extras())
         logic.save_settings(self.settings)
 
 

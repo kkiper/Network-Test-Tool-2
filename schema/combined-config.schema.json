@@ -3,45 +3,241 @@
   "$id": "combined-config.schema.json",
   "title": "Combined (switches connected) test config",
   "type": "object",
-  "required": ["schema_version", "test", "switches", "interconnects"],
+  "required": [
+    "schema_version",
+    "test",
+    "switches",
+    "interconnects"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": 1 },
-    "test": { "const": "combined" },
-    "name": { "type": "string" },
+    "schema_version": {
+      "const": 1
+    },
+    "test": {
+      "const": "combined"
+    },
+    "name": {
+      "type": "string"
+    },
     "switches": {
       "type": "array",
       "minItems": 2,
       "items": {
         "type": "object",
-        "required": ["id", "config"],
-        "properties": { "id": { "type": "string" }, "config": { "type": "string" } }
+        "required": [
+          "id",
+          "config"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "config": {
+            "type": "string"
+          }
+        }
       }
     },
     "interconnects": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["a", "b"],
+        "required": [
+          "a",
+          "b"
+        ],
         "properties": {
-          "placeholder": { "type": "boolean" },
-          "note": { "type": "string" },
-          "a": { "$ref": "#/$defs/end" },
-          "b": { "$ref": "#/$defs/end" },
-          "media": { "enum": ["copper", "fiber", null] },
-          "path": { "type": "array", "items": { "type": "string" } },
-          "expect": { "$ref": "switch-config.schema.json#/$defs/expect" }
+          "placeholder": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "a": {
+            "$ref": "#/$defs/end"
+          },
+          "b": {
+            "$ref": "#/$defs/end"
+          },
+          "media": {
+            "enum": [
+              "copper",
+              "fiber",
+              null
+            ]
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expect": {
+            "$ref": "switch-config.schema.json#/$defs/expect"
+          }
         }
       }
+    },
+    "test_switch": {
+      "$ref": "#/$defs/test_switch"
     }
   },
   "$defs": {
     "end": {
       "type": "object",
-      "required": ["switch", "interface"],
+      "required": [
+        "switch",
+        "interface"
+      ],
       "properties": {
-        "switch": { "type": "string" },
-        "interface": { "type": ["string", "null"] }
+        "switch": {
+          "type": "string"
+        },
+        "interface": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "test_switch": {
+      "description": "An external test switch the tool logs in to and whose ports it turns off and on (copper and fiber tests).",
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "link_timeout_seconds": {
+          "type": "number",
+          "minimum": 1
+        },
+        "copper_test": {
+          "type": "object",
+          "required": [
+            "switch",
+            "jacks"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "switch": {
+              "type": "string"
+            },
+            "expect": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "speed_mbps": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "duplex": {
+                  "enum": [
+                    "full",
+                    "half",
+                    null
+                  ]
+                }
+              }
+            },
+            "jacks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "jack",
+                  "switch_port",
+                  "test_switch_port"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "jack": {
+                    "type": "string"
+                  },
+                  "switch_port": {
+                    "type": "string"
+                  },
+                  "test_switch_port": {
+                    "type": "string"
+                  },
+                  "control": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fiber_test": {
+          "type": "object",
+          "required": [
+            "switch",
+            "links"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "switch": {
+              "type": "string"
+            },
+            "expect": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "speed_mbps": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "etherchannel": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "links": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "switch_port",
+                  "test_switch_port"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "bulkhead": {
+                    "type": "string"
+                  },
+                  "switch_port": {
+                    "type": "string"
+                  },
+                  "test_switch_port": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
