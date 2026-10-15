@@ -384,14 +384,32 @@ class SwitchChecker:
                             "yet. Check the cable goes to %s." % (port.target, port.target)))
 
     def _check_subnet(self, result, port):
-        subnets = port.expect.get("ip_subnets")
-        if not subnets or port.connects_to.get("kind") == "switch":
+        """Compare the device's IP with the one in the drawing, else the subnet.
+
+        Neither ever fails a port: a matching IP passes, anything else warns.
+        """
+        if port.connects_to.get("kind") == "switch":
             return
         ips = result.observed.get("ips") or []
         if not ips:
             return  # the switch hasn't seen an IP for this device; nothing to check
-        nets = [ipaddress.ip_network(s, strict=False) for s in subnets]
         label = port.diagram_label
+        want_ip = port.expect.get("ip_address")
+        if want_ip:
+            if want_ip in ips:
+                result.findings.append(Finding(
+                    Status.PASS, "ip", "%s's device has the expected IP (%s)." % (label, want_ip)))
+            else:
+                result.findings.append(Finding(
+                    Status.WARN, "ip", "%s's device has IP %s, but the drawing says %s."
+                    % (label, ", ".join(ips), want_ip),
+                    "Check that %s is set to %s, and that the right device is plugged "
+                    "into %s." % (port.target, want_ip, label)))
+            return
+        subnets = port.expect.get("ip_subnets")
+        if not subnets:
+            return
+        nets = [ipaddress.ip_network(s, strict=False) for s in subnets]
         wanted = ", ".join(subnets)
         outside = [ip for ip in ips if not any(ipaddress.ip_address(ip) in n for n in nets)]
         if not outside:
@@ -400,7 +418,7 @@ class SwitchChecker:
                 % (label, ", ".join(ips), wanted)))
             return
         result.findings.append(Finding(
-            Status.FAIL, "subnet",
+            Status.WARN, "subnet",
             "%s's device has IP %s, which isn't in this site's subnet (%s)."
             % (label, ", ".join(outside), wanted),
             "Set %s's IP address to one in %s, or check that the right device is "

@@ -344,9 +344,38 @@ def test_cli_exit_codes(tmp_path, capsys):
     assert json.loads(out[out.index("{"):])["status"] == "pass"
 
 
+def _no_expected_ips(d):
+    for p in d["ports"]:
+        p["expect"].pop("ip_address", None)
+
+
+def test_expected_ip_matches(tmp_path):
+    ports = by_label(run_single(os.path.join(CONFIGS, "switch2.json"), sample("switch2_good")))
+    assert ports["GI 1/3"].status == Status.PASS
+    assert any(f.check == "ip" and f.message == "GI 1/3's device has the expected IP "
+               "(192.168.0.11)." for f in ports["GI 1/3"].findings)
+    assert ports["GI 1/7"].status == Status.PASS      # no IP seen: nothing to compare
+
+
+def test_wrong_ip_warns_not_fails(tmp_path):
+    site = copy_configs(tmp_path)
+
+    def setup(d):
+        for p in d["ports"]:
+            if p["interface"] == "GigabitEthernet1/6":
+                p["expect"]["ip_address"] = "192.168.0.99"
+    edit_json(site / "switch2.json", setup)
+    g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
+    assert g.status == Status.WARN
+    assert g.summary == "GI 1/6's device has IP 192.168.0.16, but the drawing says 192.168.0.99."
+    assert "Check that Serial to Ethernet Converter is set to 192.168.0.99" in next(
+        f for f in g.findings if f.check == "ip").action
+
+
 def test_subnet_check(tmp_path):
     site = copy_configs(tmp_path)
-    edit_json(site / "switch2.json", lambda d: d.update(ip_subnets=["192.168.0.0/24"]))
+    edit_json(site / "switch2.json", lambda d: (_no_expected_ips(d),
+                                                d.update(ip_subnets=["192.168.0.0/24"])))
     ports = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))
     assert ports["GI 1/3"].status == Status.PASS
     assert "in the right subnet" in ports["GI 1/3"].summary
@@ -354,7 +383,7 @@ def test_subnet_check(tmp_path):
 
     edit_json(site / "switch2.json", lambda d: d.update(ip_subnets=["10.20.0.0/24"]))
     g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
-    assert g.status == Status.FAIL
+    assert g.status == Status.WARN
     assert g.summary == ("GI 1/6's device has IP 192.168.0.16, which isn't in this site's "
                          "subnet (10.20.0.0/24).")
     assert "Set Serial to Ethernet Converter's IP address" in next(f for f in g.findings if f.check == "subnet").action
@@ -364,6 +393,7 @@ def test_subnet_can_be_overridden_per_port(tmp_path):
     site = copy_configs(tmp_path)
 
     def setup(d):
+        _no_expected_ips(d)
         d["ip_subnets"] = ["10.20.0.0/24"]
         for p in d["ports"]:
             if p["interface"] != "GigabitEthernet1/6":
@@ -371,4 +401,4 @@ def test_subnet_can_be_overridden_per_port(tmp_path):
     edit_json(site / "switch2.json", setup)
     ports = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))
     assert ports["GI 1/3"].status == Status.PASS
-    assert ports["GI 1/6"].status == Status.FAIL
+    assert ports["GI 1/6"].status == Status.WARN

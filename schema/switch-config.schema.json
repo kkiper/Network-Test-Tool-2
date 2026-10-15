@@ -188,6 +188,10 @@
         "ip_subnets": {
           "$ref": "#/$defs/subnets"
         },
+        "ip_address": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
         "mac_addresses": {
           "type": "array",
           "items": {
