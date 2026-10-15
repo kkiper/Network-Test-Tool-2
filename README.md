@@ -24,7 +24,7 @@ the Windows installer from python.org includes it.
    each switch's S/N if you have it (up to 10 letters, numbers or dashes;
    one box per switch, so two for the combined test; can be left blank).
 3. **Connect to the switch**: type the switch IP, username and password, or
-   choose *Saved output file* to check a saved PuTTY log instead.
+   choose *Self Test File* to check a saved PuTTY log instead.
 4. Press **Run test**.
 
 ![Window before a test](docs/gui-start.png)

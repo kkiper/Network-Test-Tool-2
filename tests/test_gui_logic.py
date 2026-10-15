@@ -55,8 +55,8 @@ def test_build_collectors_live_and_offline():
     (False, {}, "admin", "pw", "Enter the IP address for Switch 1"),
     (False, {"switch1": "10.0.0.1"}, "", "pw", "Enter the switch username"),
     (False, {"switch1": "10.0.0.1"}, "admin", "", "Enter the switch password"),
-    (True, {}, "", "", "Choose the saved output file for Switch 1"),
-    (True, {"switch1": "/no/such/file.log"}, "", "", "Can't find the saved output"),
+    (True, {}, "", "", "Choose the self test file for Switch 1"),
+    (True, {"switch1": "/no/such/file.log"}, "", "", "Can't find the self test file"),
 ])
 def test_build_collectors_explains_what_is_missing(offline, addresses, user, pw, message):
     plan = load_test(os.path.join(CONFIGS, "switch1.json"))

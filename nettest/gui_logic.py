@@ -114,9 +114,9 @@ def build_collectors(plan, offline, addresses, username, password, enable=None):
         value = (addresses.get(sw.id) or "").strip()
         if offline:
             if not value:
-                raise FormError("Choose the saved output file for %s." % sw.name)
+                raise FormError("Choose the self test file for %s." % sw.name)
             if not os.path.exists(value):
-                raise FormError("Can't find the saved output for %s:\n%s" % (sw.name, value))
+                raise FormError("Can't find the self test file for %s:\n%s" % (sw.name, value))
             collectors[sw.id] = OfflineCollector(value)
         else:
             if not value:

@@ -85,7 +85,7 @@ class App(ttk.Frame):
         modes.grid(sticky="w", pady=(2, 4))
         ttk.Radiobutton(modes, text="Live switch", value="live", variable=self.mode,
                         command=self._build_connection).pack(side="left")
-        ttk.Radiobutton(modes, text="Saved output file", value="offline", variable=self.mode,
+        ttk.Radiobutton(modes, text="Self Test File", value="offline", variable=self.mode,
                         command=self._build_connection).pack(side="left", padx=8)
         self.conn_frame = ttk.Frame(left)
         self.conn_frame.grid(sticky="ew", pady=(0, 12))
@@ -247,7 +247,7 @@ class App(ttk.Frame):
                       foreground="#777").grid(row=r, column=0, columnspan=2, sticky="w")
 
     def _browse_file(self, var):
-        path = filedialog.askopenfilename(title="Choose saved switch output",
+        path = filedialog.askopenfilename(title="Choose the self test file",
                                           filetypes=[("Logs and text", "*.log *.txt"),
                                                      ("All files", "*.*")])
         if path:
