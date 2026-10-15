@@ -109,6 +109,14 @@ Port       (dBm)                (dBm)       (dBm)      (dBm)      (dBm)
 ---------  -----------------    ----------  ---------  ---------  ---------
 Te1/1      -14.6       --       2.0         -1.0       -9.9       -13.9
 
+SW1-ESS3300#show ip arp
+Protocol  Address          Age (min)  Hardware Addr   Type   Interface
+Internet  10.10.0.1               -   00a3.d1f0.0a01  ARPA   Vlan10
+Internet  10.10.0.21              2   3cec.ef10.2031  ARPA   Vlan10
+Internet  10.10.0.22              2   3cec.ef10.2032  ARPA   Vlan10
+Internet  10.10.0.23              4   3cec.ef10.2033  ARPA   Vlan10
+Internet  10.10.0.24              1   3cec.ef10.2034  ARPA   Vlan10
+Internet  10.10.0.40              7   0020.8590.1a2b  ARPA   Vlan10
 SW1-ESS3300#show running-config | include ^hostname
 hostname SW1-ESS3300
 SW1-ESS3300#exit

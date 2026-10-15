@@ -59,6 +59,11 @@ class PortResult:
         return worst(f.status for f in self.findings)
 
     @property
+    def ip(self):
+        """IP address(es) seen on the port, for display ("" if none)."""
+        return ", ".join((self.observed or {}).get("ips") or [])
+
+    @property
     def summary(self):
         """The single most important line, for a one-row-per-port list."""
         if not self.findings:
@@ -75,6 +80,7 @@ class PortResult:
             "interface": self.interface,
             "diagram_label": self.diagram_label,
             "target": self.target,
+            "ip": self.ip,
             "media": self.media,
             "listed": self.listed,
             "status": self.status.value,
@@ -537,6 +543,7 @@ class SwitchChecker:
             "neighbors": [{k: n.get(k) for k in ("device_id", "remote_port", "protocol")}
                           for n in self.snap.neighbors(iface)],
             "macs": [e["mac"] for e in self.snap.macs.get(iface, [])],
+            "ips": self.snap.ips(iface),
         }
 
     def _describe_far_end(self, iface):

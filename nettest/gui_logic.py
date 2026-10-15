@@ -86,6 +86,8 @@ def details_text(result):
         seen.append("switch says '%s'" % obs["status"])
     if obs.get("neighbors"):
         seen.append("sees %s" % ", ".join(n["device_id"] for n in obs["neighbors"]))
+    if obs.get("ips"):
+        seen.append("IP %s" % ", ".join(obs["ips"]))
     if obs.get("macs"):
         seen.append("MAC %s" % ", ".join(obs["macs"][:3]))
     if obs.get("tx_dbm") is not None or obs.get("rx_dbm") is not None:

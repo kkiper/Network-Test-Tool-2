@@ -27,7 +27,10 @@ the Windows installer from python.org includes it.
 ![Window before a test](docs/gui-start.png)
 
 The banner turns green, yellow or red. Problems are listed first; click any
-port to see what the switch reported and how to fix it. Every run is saved to
+port to see what the switch reported and how to fix it.
+The IP address column shows the device's IP when the switch knows it (from
+its device-tracking table, its ARP table, or CDP/LLDP); it's blank for a
+device the switch hasn't talked to. Every run is saved to
 `reports/<site>/` as a `.txt` report (and a `.json` copy), and *Open report*
 opens it. The window remembers the site, test, IPs and username between runs,
 never the password.
@@ -67,6 +70,8 @@ show cdp neighbors detail
 show lldp neighbors detail
 show mac address-table
 show interfaces transceiver detail
+show ip arp                      (IP column only)
+show device-tracking database    (IP column only)
 show running-config | include ^hostname
 ```
 

@@ -135,3 +135,21 @@ def test_split_session_log_handles_abbreviations():
 def test_hostname():
     assert parsers.parse_hostname("hostname SW1\n") == "SW1"
     assert parsers.parse_hostname("SW1#") == "SW1"
+
+
+def test_parse_ip_arp_skips_own_addresses():
+    arp = parsers.parse_ip_arp("""
+Protocol  Address          Age (min)  Hardware Addr   Type   Interface
+Internet  10.10.0.1               -   00a3.d1f0.0a01  ARPA   Vlan10
+Internet  10.10.0.21              2   3cec.ef10.2031  ARPA   Vlan10
+""")
+    assert arp == {"3c:ec:ef:10:20:31": ["10.10.0.21"]}
+
+
+def test_parse_device_tracking():
+    path = os.path.join(os.path.dirname(__file__), "samples", "switch2_good",
+                        "show_device_tracking_database.txt")
+    dt = parsers.parse_device_tracking(open(path).read())
+    assert dt["GigabitEthernet1/3"] == ["10.20.0.30"]
+    assert dt["GigabitEthernet1/6"] == ["10.20.0.50"]
+    assert len(dt) == 4

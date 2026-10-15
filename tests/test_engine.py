@@ -127,6 +127,16 @@ def test_unused_port_empty_passes_and_missing_one_is_skipped(tmp_path):
     assert "GI 3/1" not in by_label(report) and report.status == Status.PASS
 
 
+def test_ip_addresses_from_arp_and_device_tracking():
+    sw1 = by_label(run_single(config("switch1.json"), sample("switch1_good.log")))
+    assert sw1["GI 1/3"].ip == "10.10.0.21"        # ARP entry for the port's MAC
+    assert sw1["GI 1/8"].ip == "10.10.0.40"
+    assert sw1["GI 1/4"].ip == ""                  # nothing plugged in
+    sw2 = by_label(run_single(config("switch2.json"), sample("switch2_good")))
+    assert sw2["GI 1/6"].ip == "10.20.0.50"        # device-tracking database
+    assert sw2["GI 1/7"].ip == ""                  # radio not in the table
+
+
 def test_switch2_folder_sample_passes_and_notes_lldp_off():
     report = run_single(config("switch2.json"), sample("switch2_good"))
     assert report.status == Status.PASS, report.to_text()

@@ -18,7 +18,11 @@ COMMANDS = {
     "show lldp neighbors detail": ("lldp", parsers.parse_lldp_neighbors_detail),
     "show mac address-table": ("macs", parsers.parse_mac_address_table),
     "show interfaces transceiver detail": ("transceivers", parsers.parse_transceiver_detail),
+    # Only used to show each device's IP address; no check depends on them.
+    "show ip arp": ("arp", parsers.parse_ip_arp),
+    "show device-tracking database": ("device_tracking", parsers.parse_device_tracking),
 }
+OPTIONAL_COMMANDS = {"show ip arp", "show device-tracking database"}
 HOSTNAME_COMMAND = "show running-config | include ^hostname"
 
 # Output that means "the command ran but the feature is off / not supported".
@@ -43,6 +47,8 @@ class Snapshot:
     lldp: dict = field(default_factory=dict)
     macs: dict = field(default_factory=dict)
     transceivers: dict = field(default_factory=dict)
+    arp: dict = field(default_factory=dict)              # mac -> [ip]
+    device_tracking: dict = field(default_factory=dict)  # interface -> [ip]
 
     def has(self, attr):
         """True if the command behind ``attr`` produced usable output."""
@@ -53,6 +59,26 @@ class Snapshot:
 
     def neighbors(self, interface):
         return self.cdp.get(interface, []) + self.lldp.get(interface, [])
+
+    def ips(self, interface):
+        """IP addresses of whatever is plugged into ``interface``, best guess.
+
+        From device tracking, then the ARP table for the port's MACs, then
+        any management address a CDP/LLDP neighbor advertises.
+        """
+        found = []
+
+        def add(ip):
+            if ip and ip not in found:
+                found.append(ip)
+        for ip in self.device_tracking.get(interface, []):
+            add(ip)
+        for entry in self.macs.get(interface, []):
+            for ip in self.arp.get(entry["mac"], []):
+                add(ip)
+        for n in self.neighbors(interface):
+            add(n.get("ip"))
+        return found
 
 
 def build_snapshot(source, outputs, hostname=None):
