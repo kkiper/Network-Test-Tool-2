@@ -48,6 +48,29 @@ never the password or serial numbers.
 
 ![Results of a Switch 1 test with problems](docs/gui-results.png)
 
+### Renaming the switches
+
+The switches are called "Switch 1" and "Switch 2" out of the box. To call them
+something else (e.g. "Rack A core"), run the rename script from the tool's
+folder with the site folder and the new names (quotes around names with
+spaces):
+
+```
+python -m nettest.rename configs/standard-build switch1="Rack A core" switch2="Rack B"
+```
+
+Run it with just the site folder to list the current names. The new names
+show everywhere in the tool: the test choices (including the connected test,
+e.g. "Rack A core + Rack B connected"), the IP and S/N boxes, the results
+table, messages and saved reports. Restart the window (or pick the site
+again) to see them. It only changes the names in that site's config files,
+not anything on the switches (their hostnames stay the same). Names can be
+up to 40 characters and the two switches can't share a name.
+
+The script sets `switch.name` in `switch1.json` and `switch2.json` and swaps
+the old name for the new one wherever it appears in a `name`, `note` or
+`device` field in the site's other configs. Ids like `switch1` don't change.
+
 ## Running a test (command line)
 
 The same engine runs from the command line. Needs Python 3.9+ and
