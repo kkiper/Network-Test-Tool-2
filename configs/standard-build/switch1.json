@@ -25,7 +25,8 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.21"
       }
     },
     {
@@ -38,7 +39,8 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.22"
       }
     },
     {
@@ -51,7 +53,8 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.23"
       }
     },
     {
@@ -64,7 +67,8 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.24"
       }
     },
     {
@@ -77,12 +81,27 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.25"
       }
     },
     {
+      "interface": "GigabitEthernet1/10",
+      "diagram_label": "GI 1/10",
+      "media": "copper",
+      "connects_to": {
+        "device": "Unused",
+        "port": null,
+        "kind": "unused"
+      },
+      "expect": {
+        "link": "down"
+      },
+      "note": "Not used on the drawing. Nothing should be plugged in."
+    },
+    {
       "interface": "TenGigabitEthernet1/1",
-      "diagram_label": "TE1/1",
+      "diagram_label": "TE 1/1",
       "media": "fiber",
       "connects_to": {
         "device": "Fiber Bulkhead (4-channel multimode)",
@@ -153,14 +172,14 @@
       "diagram_label": "GI 1/4",
       "media": "copper",
       "connects_to": {
-        "device": "Bulkhead RJ-45",
+        "device": "Test laptop via bulkhead",
         "port": "1-J5",
         "kind": "bulkhead"
       },
       "expect": {
-        "link": "optional"
+        "link": "up"
       },
-      "note": "Passive bulkhead. Link only comes up when something is plugged into the outside of the bulkhead, so link is optional."
+      "note": "The test laptop plugs into the outside of bulkhead 1-J5 for the Switch 1 test, so this port should have link. Add the laptop's IP as expect.ip_address if you want it checked."
     },
     {
       "interface": "GigabitEthernet1/6",

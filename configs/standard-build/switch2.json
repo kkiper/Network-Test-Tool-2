@@ -25,12 +25,13 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.11"
       }
     },
     {
       "interface": "GigabitEthernet1/9",
-      "diagram_label": "GE 1/9",
+      "diagram_label": "GI 1/9",
       "media": "copper",
       "connects_to": {
         "device": "Radio 1",
@@ -38,12 +39,13 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.12"
       }
     },
     {
       "interface": "GigabitEthernet1/10",
-      "diagram_label": "GE 1/10",
+      "diagram_label": "GI 1/10",
       "media": "copper",
       "connects_to": {
         "device": "Radio 1",
@@ -51,12 +53,13 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.13"
       }
     },
     {
       "interface": "GigabitEthernet1/8",
-      "diagram_label": "GE 1/8",
+      "diagram_label": "GI 1/8",
       "media": "copper",
       "connects_to": {
         "device": "Radio 2",
@@ -64,12 +67,13 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.14"
       }
     },
     {
       "interface": "GigabitEthernet1/7",
-      "diagram_label": "GE 1/7",
+      "diagram_label": "GI 1/7",
       "media": "copper",
       "connects_to": {
         "device": "Radio 2",
@@ -77,12 +81,13 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.15"
       }
     },
     {
       "interface": "GigabitEthernet1/6",
-      "diagram_label": "GE 1/6",
+      "diagram_label": "GI 1/6",
       "media": "copper",
       "connects_to": {
         "device": "Serial to Ethernet Converter",
@@ -90,22 +95,37 @@
         "kind": "device"
       },
       "expect": {
-        "link": "up"
+        "link": "up",
+        "ip_address": "192.168.0.16"
       }
     },
     {
       "interface": "GigabitEthernet1/5",
-      "diagram_label": "GE 1/5",
+      "diagram_label": "GI 1/5",
       "media": "copper",
       "connects_to": {
-        "device": "Bulkhead RJ-45",
+        "device": "Test laptop via bulkhead",
         "port": "2-J4",
         "kind": "bulkhead"
       },
       "expect": {
-        "link": "optional"
+        "link": "up"
       },
-      "note": "Passive bulkhead. Link only comes up when something is plugged into the outside of the bulkhead, so link is optional."
+      "note": "The test laptop plugs into the outside of bulkhead 2-J4 for the Switch 2 test, so this port should have link. Add the laptop's IP as expect.ip_address if you want it checked."
+    },
+    {
+      "interface": "GigabitEthernet1/4",
+      "diagram_label": "GI 1/4",
+      "media": "copper",
+      "connects_to": {
+        "device": "Unused",
+        "port": null,
+        "kind": "unused"
+      },
+      "expect": {
+        "link": "down"
+      },
+      "note": "Not used on the drawing. Nothing should be plugged in."
     }
   ]
 }

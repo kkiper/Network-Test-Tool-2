@@ -5,6 +5,7 @@ Vlan    Mac Address       Type        Ports
 ----    -----------       --------    -----
  All    0100.0ccc.cccc    STATIC      CPU
   20    0004.f2aa.0101    DYNAMIC     Gi1/3
+  20    54bf.6401.0c20    DYNAMIC     Gi1/5
   20    0090.e8bb.0606    DYNAMIC     Gi1/6
   20    00a0.4501.0007    DYNAMIC     Gi1/7
   20    00a0.4501.0008    DYNAMIC     Gi1/8

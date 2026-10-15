@@ -70,7 +70,7 @@ def test_combined_overrides_bulkhead_ports():
     assert p.peer["interface"] == "GigabitEthernet1/5"
     assert p.target == "Switch 2 GI 1/5"
     single = load_test(config("switch1.json"))
-    assert single.switch("switch1").port("Gi1/4").expect["link"] == "optional"
+    assert single.switch("switch1").port("Gi1/4").expect["link"] == "up"   # test laptop
 
 
 def test_bad_config_gives_readable_error(tmp_path):
@@ -87,7 +87,7 @@ def test_switch1_good_sample_passes():
     report = run_single(config("switch1.json"), sample("switch1_good.log"))
     assert report.status == Status.PASS, report.to_text()
     assert report.switches[0].hostname == "SW1-ESS3300"
-    assert report.counts()["pass"] == 17
+    assert report.counts()["pass"] == 18
 
 
 def test_switch1_faults_sample():
@@ -104,13 +104,38 @@ def test_switch1_faults_sample():
     assert ports["GI 1/9"].status == Status.FAIL
     assert "err-disabled" in ports["GI 1/9"].summary
     assert ports["GI 1/8"].status == Status.PASS
-    assert ports["TE1/1"].status == Status.FAIL
-    assert "-14.6 dBm" in ports["TE1/1"].summary
-    assert ports["TE1/1"].observed["rx_dbm"] == -14.6
+    assert ports["TE 1/1"].status == Status.FAIL
+    assert "-14.6 dBm" in ports["TE 1/1"].summary
+    assert ports["TE 1/1"].observed["rx_dbm"] == -14.6
     assert ports["TE 1/2"].status == Status.FAIL
     assert "no SFP" in ports["TE 1/2"].summary
-    stray = ports["GI 1/10"]
-    assert not stray.listed and stray.status == Status.WARN
+    unused = ports["GI 1/10"]          # unused on the drawing, but something is plugged in
+    assert unused.status == Status.FAIL
+    assert "nothing should be plugged into it (device MAC 3c:ec:ef:10:20:32)" in unused.summary
+    # The internal app-hosting port is always up and is never reported.
+    assert [r.diagram_label for r in report.ports() if not r.listed] == []
+
+
+def test_unused_port_empty_passes_and_missing_one_is_skipped(tmp_path):
+    ports = by_label(run_single(config("switch1.json"), sample("switch1_good.log")))
+    assert ports["GI 1/10"].summary == "GI 1/10 is empty, as expected."
+    site = copy_configs(tmp_path)
+    edit_json(site / "switch1.json", lambda d: d["ports"].append({
+        "interface": "GigabitEthernet3/1", "media": "copper",
+        "connects_to": {"device": "Unused", "kind": "unused"}, "expect": {"link": "down"}}))
+    report = run_single(str(site / "switch1.json"), sample("switch1_good.log"))
+    assert "GI 3/1" not in by_label(report) and report.status == Status.PASS
+
+
+def test_ip_addresses_from_arp_and_device_tracking():
+    sw1 = by_label(run_single(config("switch1.json"), sample("switch1_good.log")))
+    assert sw1["GI 1/3"].ip == "192.168.0.21"        # ARP entry for the port's MAC
+    assert sw1["GI 1/8"].ip == "192.168.0.25"
+    assert sw1["GI 1/4"].ip == "192.168.0.200"       # test laptop on 1-J5
+    assert sw1["GI 1/6"].ip == ""                  # nothing plugged in
+    sw2 = by_label(run_single(config("switch2.json"), sample("switch2_good")))
+    assert sw2["GI 1/6"].ip == "192.168.0.16"        # device-tracking database
+    assert sw2["GI 1/7"].ip == ""                  # radio not in the table
 
 
 def test_switch2_folder_sample_passes_and_notes_lldp_off():
@@ -134,7 +159,7 @@ def test_light_level_warning_band(tmp_path):
     # -10.5 dBm is between the SFP's low warning (-9.9) and low alarm (-13.9).
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -10.5 -")])
-    te = by_label(run_single(config("switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(config("switch1.json"), path))["TE 1/1"]
     assert te.status == Status.WARN
     assert "warning level" in te.summary
 
@@ -150,12 +175,12 @@ def test_light_levels_fall_back_to_config_range(tmp_path):
     # -10.5 is a module warning but inside the datasheet range (-11.1..0.5).
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -10.5 -")])
-    te = by_label(run_single(str(site / "switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(str(site / "switch1.json"), path))["TE 1/1"]
     assert te.status == Status.PASS
     # -11.5 is outside the datasheet range.
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -11.5 -")], name="b.log")
-    te = by_label(run_single(str(site / "switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(str(site / "switch1.json"), path))["TE 1/1"]
     assert te.status == Status.FAIL
     assert "datasheet range" in te.summary
 
@@ -163,7 +188,7 @@ def test_light_levels_fall_back_to_config_range(tmp_path):
 def test_no_light_when_link_up(tmp_path):
     path = write_variant(tmp_path, sample("switch1_good.log"),
                          [("Te1/1      -3.1 ", "Te1/1      -40.0 --")])
-    te = by_label(run_single(config("switch1.json"), path))["TE1/1"]
+    te = by_label(run_single(config("switch1.json"), path))["TE 1/1"]
     assert te.status == Status.FAIL
     assert "no light" in te.summary
 
@@ -184,14 +209,18 @@ def test_swapped_cables_detected_by_mac(tmp_path):
     ports = by_label(run_single(str(site / "switch1.json"), path))
     assert ports["GI 1/3"].status == Status.FAIL
     assert "plugged into GI 1/5 instead" in ports["GI 1/3"].summary
-    assert "swapped" in ports["GI 1/3"].findings[-1].action
+    assert "swapped" in next(f for f in ports["GI 1/3"].findings if f.check == "mac").action
 
 
-def test_unlisted_fail_if_up(tmp_path):
+def test_unlisted_port_with_link(tmp_path):
+    path = write_variant(tmp_path, sample("switch1_good.log"), [(
+        "Gi2/9                           notconnect   1            auto   auto",
+        "Gi2/9                           connected    1          a-full a-1000")])
+    stray = by_label(run_single(config("switch1.json"), path))["GI 2/9"]
+    assert not stray.listed and stray.status == Status.WARN
     site = copy_configs(tmp_path)
     edit_json(site / "switch1.json", lambda d: d.update(unlisted_ports="fail_if_up"))
-    report = run_single(str(site / "switch1.json"), sample("switch1_faults.log"))
-    assert by_label(report)["GI 1/10"].status == Status.FAIL
+    assert by_label(run_single(str(site / "switch1.json"), path))["GI 2/9"].status == Status.FAIL
 
 
 def test_admin_down_port(tmp_path):
@@ -239,7 +268,7 @@ def test_combined_interconnect_down(tmp_path):
     sw2 = write_variant(tmp_path, sample("combined_switch2.log"), [(
         "Gi1/5        Bulkhead 2-J4      connected    20         a-full a-1000",
         "Gi1/5        Bulkhead 2-J4      notconnect   20           auto   auto")])
-    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GE 1/5"]
+    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GI 1/5"]
     assert ge15.status == Status.FAIL
     assert "bulkheads 1-J5 and 2-J4" in ge15.findings[0].action
 
@@ -249,7 +278,7 @@ def test_combined_no_cdp_neighbor(tmp_path):
         "Device ID: SW1-ESS3300", "Device ID: SW1-ESS3300-gone")])
     sw2 = write_variant(tmp_path, sw2, [(
         "Interface: GigabitEthernet1/5,", "Interface: GigabitEthernet1/7,")], name="b.log")
-    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GE 1/5"]
+    ge15 = by_label(run_combined(sample("combined_switch1.log"), sw2), "switch2")["GI 1/5"]
     assert ge15.status == Status.FAIL
     assert "can't see Switch 1" in ge15.summary
 
@@ -299,7 +328,7 @@ def test_progress_and_save(tmp_path):
     assert os.path.basename(json_path).startswith("site-7_switch-1_")
     data = json.load(open(json_path))
     assert data["status"] == "fail"
-    assert data["counts"]["fail"] == 4
+    assert data["counts"]["fail"] == 5
     assert "Fix:" in open(txt_path).read()
 
 
@@ -314,3 +343,51 @@ def test_cli_exit_codes(tmp_path, capsys):
                      "--json"]) == 0
     out = capsys.readouterr().out
     assert json.loads(out[out.index("{"):])["status"] == "pass"
+
+
+def test_expected_ip_matches(tmp_path):
+    ports = by_label(run_single(os.path.join(CONFIGS, "switch2.json"), sample("switch2_good")))
+    assert ports["GI 1/3"].status == Status.PASS
+    assert any(f.check == "ip" and f.message == "GI 1/3's device has the expected IP "
+               "(192.168.0.11)." for f in ports["GI 1/3"].findings)
+    assert ports["GI 1/7"].status == Status.PASS      # no IP seen: nothing to compare
+
+
+def test_wrong_ip_warns_not_fails(tmp_path):
+    site = copy_configs(tmp_path)
+
+    def setup(d):
+        for p in d["ports"]:
+            if p["interface"] == "GigabitEthernet1/6":
+                p["expect"]["ip_address"] = "192.168.0.99"
+    edit_json(site / "switch2.json", setup)
+    g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
+    assert g.status == Status.WARN
+    assert g.summary == "GI 1/6's device has IP 192.168.0.16, but the drawing says 192.168.0.99."
+    assert "Check that Serial to Ethernet Converter is set to 192.168.0.99" in next(
+        f for f in g.findings if f.check == "ip").action
+
+
+def test_no_expected_ip_means_no_ip_check(tmp_path):
+    site = copy_configs(tmp_path)
+
+    def setup(d):
+        for p in d["ports"]:
+            p["expect"].pop("ip_address", None)
+    edit_json(site / "switch2.json", setup)
+    g = by_label(run_single(str(site / "switch2.json"), sample("switch2_good")))["GI 1/6"]
+    assert g.status == Status.PASS and g.ip == "192.168.0.16"
+    assert not any(f.check == "ip" for f in g.findings)
+
+
+def test_laptop_bulkhead_must_have_link(tmp_path):
+    site = copy_configs(tmp_path)
+    folder = tmp_path / "sw2"
+    shutil.copytree(sample("switch2_good"), folder)
+    status = folder / "show_interfaces_status.txt"
+    status.write_text(status.read_text().replace(
+        "Gi1/5        Bulkhead 2-J4      connected    20         a-full a-1000",
+        "Gi1/5        Bulkhead 2-J4      notconnect   20           auto   auto"))
+    g = by_label(run_single(str(site / "switch2.json"), str(folder)))["GI 1/5"]
+    assert g.status == Status.FAIL
+    assert g.target == "Test laptop via bulkhead 2-J4"

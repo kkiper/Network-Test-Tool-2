@@ -255,3 +255,38 @@ def parse_hostname(text):
         return m.group(1)
     m = re.search(r"^([A-Za-z0-9._-]+)[#>]", text or "", re.M)
     return m.group(1) if m else None
+
+
+# --------------------------------------------------------------------------
+# IP addresses: show ip arp / show device-tracking database
+# --------------------------------------------------------------------------
+
+_IPV4 = r"(?:\d{1,3}\.){3}\d{1,3}"
+_DOT_MAC = r"[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}"
+
+
+def parse_ip_arp(text):
+    """Parse ``show ip arp``. Returns ``{mac: [ip, ...]}``.
+
+    The switch's own addresses (Age ``-``) are left out.
+    """
+    result = {}
+    for line in (text or "").splitlines():
+        m = re.match(r"^\s*Internet\s+(%s)\s+(\S+)\s+(%s)\s" % (_IPV4, _DOT_MAC), line)
+        if not m or m.group(2) == "-":
+            continue
+        result.setdefault(normalize_mac(m.group(3)), []).append(m.group(1))
+    return result
+
+
+def parse_device_tracking(text):
+    """Parse ``show device-tracking database``. Returns ``{interface: [ip, ...]}``."""
+    result = {}
+    for line in (text or "").splitlines():
+        m = re.match(r"^\s*\S+\s+(%s)\s+(%s)\s+(\S+)\s" % (_IPV4, _DOT_MAC), line)
+        if not m or not _IFACE_RE.match(m.group(3)):
+            continue
+        ips = result.setdefault(normalize_interface(m.group(3)), [])
+        if m.group(1) not in ips:
+            ips.append(m.group(1))
+    return result

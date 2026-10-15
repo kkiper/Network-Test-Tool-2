@@ -1,0 +1,149 @@
+"""The parts of the GUI that don't need a screen.
+
+Kept separate from :mod:`nettest.gui` so they can be tested anywhere (tkinter
+isn't installed on every Python) and so the window code stays about layout.
+"""
+
+import json
+import os
+import sys
+
+from .checker import Status
+from .collectors import OfflineCollector, SshCollector
+
+STATUS_TEXT = {
+    Status.FAIL: "FAIL",
+    Status.WARN: "WARN",
+    Status.PASS: "PASS",
+    Status.NOT_CONFIGURED: "N/A",
+}
+
+BANNER_TEXT = {
+    Status.PASS: "PASS: everything is cabled the way the drawing says",
+    Status.WARN: "WARNINGS: it works, but check the yellow items",
+    Status.FAIL: "FAIL: fix the red items, then run the test again",
+    Status.NOT_CONFIGURED: "PASS: some items aren't set up in the config yet",
+}
+
+_SORT = {Status.FAIL: 0, Status.WARN: 1, Status.NOT_CONFIGURED: 2, Status.PASS: 3}
+
+
+def app_dir():
+    """Folder the tool lives in: next to the .exe when packaged, else the repo root."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def configs_dir():
+    return os.path.join(app_dir(), "configs")
+
+
+def reports_dir(site):
+    return os.path.join(app_dir(), "reports", site)
+
+
+def list_sites(root=None):
+    """Site folders under ``configs/`` that contain at least one config."""
+    root = root or configs_dir()
+    if not os.path.isdir(root):
+        return []
+    return sorted(d for d in os.listdir(root)
+                  if os.path.isdir(os.path.join(root, d))
+                  and any(f.endswith(".json") for f in os.listdir(os.path.join(root, d))))
+
+
+def counts_text(counts):
+    """``{"fail": 1, "warn": 2, "pass": 9}`` -> ``1 failed, 2 warnings, 9 passed``."""
+    parts = ["%d failed" % counts.get("fail", 0),
+             "%d warning%s" % (counts.get("warn", 0), "" if counts.get("warn") == 1 else "s"),
+             "%d passed" % counts.get("pass", 0)]
+    if counts.get("not_configured"):
+        parts.append("%d not set up" % counts["not_configured"])
+    return ", ".join(parts)
+
+
+def sorted_rows(report):
+    """Port results for the results table: problems first, then config order."""
+    rows = []
+    for order, r in enumerate(report.ports()):
+        rows.append((_SORT[r.status], order, r))
+    return [r for _, _, r in sorted(rows, key=lambda t: (t[0], t[1]))]
+
+
+def details_text(result):
+    """The text shown under the table when a port is selected."""
+    lines = ["%s on %s  ->  %s" % (result.diagram_label, result.switch_name, result.target), ""]
+    for f in result.findings:
+        lines.append("%s  %s" % (STATUS_TEXT[f.status], f.message))
+        if f.action and f.status in (Status.WARN, Status.FAIL, Status.NOT_CONFIGURED):
+            lines.append("      How to fix: %s" % f.action)
+    if result.note:
+        lines += ["", "Note: %s" % result.note]
+    obs = result.observed or {}
+    seen = []
+    if obs.get("status"):
+        seen.append("switch says '%s'" % obs["status"])
+    if obs.get("neighbors"):
+        seen.append("sees %s" % ", ".join(n["device_id"] for n in obs["neighbors"]))
+    if obs.get("ips"):
+        seen.append("IP %s" % ", ".join(obs["ips"]))
+    if obs.get("macs"):
+        seen.append("MAC %s" % ", ".join(obs["macs"][:3]))
+    if obs.get("tx_dbm") is not None or obs.get("rx_dbm") is not None:
+        seen.append("light Tx %s / Rx %s dBm" % (obs.get("tx_dbm", "-"), obs.get("rx_dbm", "-")))
+    if seen:
+        lines += ["", "Read from the switch: " + "; ".join(seen)]
+    return "\n".join(lines)
+
+
+class FormError(Exception):
+    """Something the tech needs to fill in before the test can run."""
+
+
+def build_collectors(plan, offline, addresses, username, password, enable=None):
+    """Turn what's typed in the form into collectors for :func:`run_test`.
+
+    ``addresses`` maps switch id to an IP (live) or a file/folder (offline).
+    """
+    collectors = {}
+    for sw in plan.switches:
+        value = (addresses.get(sw.id) or "").strip()
+        if offline:
+            if not value:
+                raise FormError("Choose the saved output file for %s." % sw.name)
+            if not os.path.exists(value):
+                raise FormError("Can't find the saved output for %s:\n%s" % (sw.name, value))
+            collectors[sw.id] = OfflineCollector(value)
+        else:
+            if not value:
+                raise FormError("Enter the IP address for %s." % sw.name)
+            if not username:
+                raise FormError("Enter the switch username.")
+            if not password:
+                raise FormError("Enter the switch password.")
+            collectors[sw.id] = SshCollector(value, username, password, secret=enable or None)
+    return collectors
+
+
+# ---- remembered settings (never the password) -----------------------------
+
+SETTINGS_PATH = os.path.join(os.path.expanduser("~"), ".nettest-gui.json")
+
+
+def load_settings(path=SETTINGS_PATH):
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_settings(settings, path=SETTINGS_PATH):
+    clean = {k: v for k, v in settings.items() if "password" not in k}
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(clean, f, indent=2)
+    except OSError:
+        pass  # remembering the last IP is a convenience, not worth an error

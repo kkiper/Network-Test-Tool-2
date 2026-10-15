@@ -28,6 +28,7 @@ Gi2/13                          notconnect   1            auto   auto 10/100/100
 Gi2/14                          notconnect   1            auto   auto 10/100/1000BaseTX
 Gi2/15                          notconnect   1            auto   auto 10/100/1000BaseTX
 Gi2/16                          notconnect   1            auto   auto 10/100/1000BaseTX
+Ap1/1                           connected    trunk        full   1000 App-hosting port
 SW1-ESS3300#show cdp neighbors detail
 -------------------------
 Device ID: SW2-ESS3300.example.local
@@ -61,7 +62,7 @@ Time remaining: 101 seconds
 System Capabilities: S,R
 Enabled Capabilities: N/A
 Management Addresses:
-    IP: 10.10.0.21
+    IP: 192.168.0.21
 Auto Negotiation - supported, enabled
 Physical media capabilities:
     1000baseT(FD)
@@ -129,6 +130,14 @@ Port       (dBm)                (dBm)       (dBm)      (dBm)      (dBm)
 Te1/1      -3.1                 2.0         -1.0       -9.9       -13.9
 Te1/2      -40.0       --       2.0         -1.0       -9.9       -13.9
 
+SW1-ESS3300#show ip arp
+Protocol  Address          Age (min)  Hardware Addr   Type   Interface
+Internet  192.168.0.20               -   00a3.d1f0.0a01  ARPA   Vlan10
+Internet  192.168.0.21              2   3cec.ef10.2031  ARPA   Vlan10
+Internet  192.168.0.22              2   3cec.ef10.2032  ARPA   Vlan10
+Internet  192.168.0.23              4   3cec.ef10.2033  ARPA   Vlan10
+Internet  192.168.0.24              1   3cec.ef10.2034  ARPA   Vlan10
+Internet  192.168.0.25              7   0020.8590.1a2b  ARPA   Vlan10
 SW1-ESS3300#show running-config | include ^hostname
 hostname SW1-ESS3300
 SW1-ESS3300#exit

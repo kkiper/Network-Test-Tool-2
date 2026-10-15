@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass, field
 
 from .checker import Status, SwitchChecker, worst
-from .collectors import CollectionError
+from .collectors import OPTIONAL_COMMANDS, CollectionError
 
 
 @dataclass
@@ -95,8 +95,8 @@ class TestReport:
             for cmd, why in sw.unavailable.items():
                 lines.append("  NOTE  '%s' was not available (%s)" % (cmd, why))
             for r in sw.results:
-                lines.append("  %s  %-8s -> %-30s %s" % (icon[r.status.value], r.diagram_label,
-                                                       r.target, r.summary))
+                lines.append("  %s  %-8s -> %-30s %-15s %s" % (
+                    icon[r.status.value], r.diagram_label, r.target, r.ip or "-", r.summary))
                 if r.status in (Status.WARN, Status.FAIL):
                     for f in r.findings:
                         if f.status in (Status.WARN, Status.FAIL):
@@ -165,7 +165,8 @@ def run_test(plan, collectors, on_progress=None):
             continue
         snapshots[sw.id] = snap
         sr.hostname = snap.hostname
-        sr.unavailable = {k: v for k, v in snap.unavailable.items()}
+        sr.unavailable = {k: v for k, v in snap.unavailable.items()
+                          if k not in OPTIONAL_COMMANDS}
 
     hostnames = {sid: s.hostname for sid, s in snapshots.items() if s.hostname}
     for sw, sr in zip(plan.switches, report.switches):
