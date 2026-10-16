@@ -38,7 +38,10 @@ The banner turns green, yellow or red. Problems are listed first; click any
 port to see what the switch reported and how to fix it.
 The IP address column shows the device's IP when the switch knows it (from
 its device-tracking table, its ARP table, or CDP/LLDP); it's blank for a
-device the switch hasn't talked to. The MAC address column shows the device's MAC from the switch's MAC
+device the switch hasn't talked to. On a live switch, the tool first has the switch ping every device IP
+listed in the config (`expect.ip_address`), so quiet devices answer and
+show up in its tables; it adds about a second per device and doesn't
+affect pass/fail by itself. The MAC address column shows the device's MAC from the switch's MAC
 address table (for a port that learns several, such as a link to another
 switch, the first one plus a count; all are in the .json report). The
 Neighbor device ID and Neighbor port ID

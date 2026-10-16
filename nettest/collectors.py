@@ -157,11 +157,26 @@ class SshCollector:
             raise
         return conn
 
-    def collect(self, on_progress=None):
+    # run_test() passes the device IPs from the config to ``collect(ping=...)``.
+    can_ping = True
+
+    def collect(self, on_progress=None, ping=()):
+        """Read every show command. ``ping`` is a list of device IPs to ping first.
+
+        Pinging makes a quiet device answer the switch's ARP request, so its
+        MAC (and IP) are in the tables when they're read. A device that
+        doesn't answer the ping itself still answers ARP. Results are ignored.
+        """
         say = on_progress or (lambda msg: None)
         conn = self._connect(say)
         try:
             hostname = conn.find_prompt().rstrip("#>").strip() or None
+            for ip in ping:
+                say("Pinging %s from %s so the switch learns it" % (ip, self.host))
+                try:
+                    conn.send_command("ping %s repeat 2 timeout 1" % ip, read_timeout=15)
+                except Exception:
+                    pass  # waking devices is best effort; the test still runs
             outputs = {}
             for cmd in list(COMMANDS) + [HOSTNAME_COMMAND]:
                 say("Running '%s' on %s" % (cmd, self.host))

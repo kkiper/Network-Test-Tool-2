@@ -143,6 +143,16 @@ def _now():
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
+def _device_ips(switch_plan):
+    """The expected device IPs on a switch, to ping before reading its tables."""
+    ips = []
+    for port in switch_plan.ports:
+        ip = port.expect.get("ip_address")
+        if ip and port.connects_to.get("kind") != "switch" and ip not in ips:
+            ips.append(ip)
+    return ips
+
+
 def run_test(plan, collectors, on_progress=None, serials=None, test_date=None, extras=()):
     """Collect from every switch in ``plan`` and check it.
 
@@ -174,7 +184,10 @@ def run_test(plan, collectors, on_progress=None, serials=None, test_date=None, e
             continue
         sr.source = collector.describe()
         try:
-            snap = collector.collect(on_progress=say)
+            if getattr(collector, "can_ping", False):
+                snap = collector.collect(on_progress=say, ping=_device_ips(sw))
+            else:
+                snap = collector.collect(on_progress=say)
         except CollectionError as e:
             sr.error = str(e)
             say("%s: %s" % (sw.name, e))

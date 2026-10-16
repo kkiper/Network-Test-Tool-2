@@ -419,3 +419,29 @@ def test_mac_address_column():
     assert gi13.mac == "aa:aa:aa:aa:aa:01 (+2 more)"
     gi13.observed["macs"] = ["3c:ec:ef:10:20:31"]
     assert report.to_dict()["switches"][0]["ports"][0]["mac"] == "3c:ec:ef:10:20:31"
+
+
+def test_live_collect_pings_listed_device_ips_first(monkeypatch):
+    from nettest.collectors import SshCollector
+
+    sent = []
+
+    class FakeConn:
+        def find_prompt(self):
+            return "SW2-ESS3300#"
+
+        def send_command(self, cmd, read_timeout=None):
+            sent.append(cmd)
+            if cmd.startswith("ping 192.168.0.13"):
+                raise OSError("timed out")      # one bad ping doesn't stop the test
+            return ""
+
+        def disconnect(self):
+            pass
+
+    monkeypatch.setattr(SshCollector, "_connect", lambda self, say: FakeConn())
+    run_test(load_test(config("switch2.json")),
+             {"switch2": SshCollector("192.168.0.10", "admin", "pw")})
+    pings = [c for c in sent if c.startswith("ping ")]
+    assert pings == ["ping 192.168.0.%d repeat 2 timeout 1" % n for n in (11, 12, 13, 14, 15, 16)]
+    assert sent.index(pings[-1]) < sent.index("show mac address-table")
