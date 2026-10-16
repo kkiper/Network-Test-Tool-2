@@ -407,3 +407,15 @@ def test_neighbor_device_and_port():
     assert sw1["GI 1/3"].neighbor_device == "server01"     # LLDP from the server
     assert sw1["GI 1/8"].neighbor_device == ""             # UPS doesn't speak CDP/LLDP
     assert report.to_dict()["switches"][0]["ports"][0]["neighbor_device"] == "server01"
+
+
+def test_mac_address_column():
+    report = run_combined(sample("combined_switch1.log"), sample("combined_switch2.log"))
+    sw1 = by_label(report, "switch1")
+    assert sw1["GI 1/3"].mac == "3c:ec:ef:10:20:31"
+    assert sw1["GI 1/6"].mac == ""                      # nothing plugged in
+    gi13 = sw1["GI 1/3"]                                # e.g. a link to another switch
+    gi13.observed["macs"] = ["aa:aa:aa:aa:aa:01", "aa:aa:aa:aa:aa:02", "aa:aa:aa:aa:aa:03"]
+    assert gi13.mac == "aa:aa:aa:aa:aa:01 (+2 more)"
+    gi13.observed["macs"] = ["3c:ec:ef:10:20:31"]
+    assert report.to_dict()["switches"][0]["ports"][0]["mac"] == "3c:ec:ef:10:20:31"

@@ -38,7 +38,10 @@ The banner turns green, yellow or red. Problems are listed first; click any
 port to see what the switch reported and how to fix it.
 The IP address column shows the device's IP when the switch knows it (from
 its device-tracking table, its ARP table, or CDP/LLDP); it's blank for a
-device the switch hasn't talked to. The Neighbor device ID and Neighbor port ID
+device the switch hasn't talked to. The MAC address column shows the device's MAC from the switch's MAC
+address table (for a port that learns several, such as a link to another
+switch, the first one plus a count; all are in the .json report). The
+Neighbor device ID and Neighbor port ID
 columns show what the device on the port announces over CDP or LLDP (its
 name, and the port on its end); they're blank for devices that don't use
 either, which is common for end devices. Every run is saved to
