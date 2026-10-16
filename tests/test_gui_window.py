@@ -40,8 +40,8 @@ def test_offline_run_fills_table_and_saves_report(app, tmp_path):
         app.root.after(20)
     rows = [app.tree.item(i, "values") for i in app.tree.get_children()]
     assert rows[0][0] == "FAIL" and rows[0][2] == "GI 1/5"
-    assert app.tree["columns"][5:7] == ("nbr_device", "nbr_port")
-    assert ("server01", "3c:ec:ef:10:20:31") in [(r[5], r[6]) for r in rows]
+    assert app.tree["columns"][5:8] == ("mac", "nbr_device", "nbr_port")
+    assert ("3c:ec:ef:10:20:31", "server01", "3c:ec:ef:10:20:31") in [r[5:8] for r in rows]
     assert app.banner.cget("text").startswith("FAIL")
     saved = sorted(os.listdir(tmp_path / "reports"))
     assert len(saved) == 2 and "_fcw2233a1b_" in saved[0]

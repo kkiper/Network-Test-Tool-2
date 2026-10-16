@@ -63,6 +63,18 @@ class PortResult:
         """IP address(es) seen on the port, for display ("" if none)."""
         return ", ".join((self.observed or {}).get("ips") or [])
 
+    @property
+    def mac(self):
+        """MAC address seen on the port, for display ("" if none).
+
+        A port facing another switch can learn many MACs; only the first is
+        shown, with a count of the rest (they're all in ``observed["macs"]``).
+        """
+        macs = (self.observed or {}).get("macs") or []
+        if len(macs) > 1:
+            return "%s (+%d more)" % (macs[0], len(macs) - 1)
+        return macs[0] if macs else ""
+
     def neighbors(self):
         """``[(device_id, port_id)]`` of CDP/LLDP neighbors, without repeats."""
         seen = []
@@ -101,6 +113,7 @@ class PortResult:
             "diagram_label": self.diagram_label,
             "target": self.target,
             "ip": self.ip,
+            "mac": self.mac,
             "neighbor_device": self.neighbor_device,
             "neighbor_port": self.neighbor_port,
             "media": self.media,
