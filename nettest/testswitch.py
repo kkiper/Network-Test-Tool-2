@@ -266,8 +266,8 @@ class _CopperRun:
                 findings.append(Finding(
                     Status.FAIL, "jack",
                     "%s also came up at the same time." % ", ".join(map(drawing_label, others)),
-                    "Two %s ports are wired to the same test-switch port. Check "
-                    "the patching at the bulkheads." % self.switch_name))
+                    "Two Switch 1 ports are wired to the same test-switch port. Check "
+                    "the patching at the bulkheads."))
         elif came_up:
             wrong = came_up[0]
             other = self.by_port.get(wrong)
@@ -278,8 +278,8 @@ class _CopperRun:
                 % (self.ts_name, ts_label, drawing_label(wrong), where, label),
                 ("The cables for %s and %s are probably swapped." % (jack.jack, other.jack))
                 if other else
-                "The cable at %s goes to the wrong %s port. Trace it from the "
-                "bulkhead back to the switch." % (jack.jack, self.switch_name)))
+                "The cable at %s goes to the wrong Switch 1 port. Trace it from the "
+                "bulkhead back to the switch." % jack.jack))
             row = st.get(wrong)
         else:
             findings.append(Finding(
